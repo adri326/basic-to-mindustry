@@ -18,6 +18,19 @@ pub enum Operator {
     // etc.
 }
 
+impl Operator {
+    fn precedence(self) -> u8 {
+        use Operator as O;
+        match self {
+            O::Add | O::Sub => 5,
+            O::RShift | O::LShift => 4,
+            O::Mod => 3,
+            O::Mul | O::Div => 0,
+            O::Eq | O::Neq | O::Gt | O::Lt | O::Gte | O::Lte => 10,
+        }
+    }
+}
+
 #[derive(PartialEq, Clone, Debug)]
 pub enum BasicToken {
     NewLine,
@@ -29,7 +42,7 @@ pub enum BasicToken {
     Goto,
     OpenParen,
     CloseParen,
-    Integer(u64),
+    Integer(i64),
     Float(f64),
     Name(String),
     String(String),
@@ -39,6 +52,9 @@ pub enum BasicToken {
 #[derive(PartialEq, Clone, Debug)]
 pub enum ParseError {
     InvalidToken(String),
+    UnexpectedToken(BasicToken),
+    MissingToken(BasicToken),
+    ExpectedOperand,
 }
 
 pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
@@ -148,6 +164,169 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
     }
 
     Ok(res)
+}
+
+pub enum BasicAstExpression {
+    Integer(i64),
+    Float(f64),
+    Variable(String),
+    Binary(Operator, Box<BasicAstExpression>, Box<BasicAstExpression>),
+}
+
+pub enum BasicAstOperation {
+    Assign(String, BasicAstExpression),
+    Jump(String),
+    IfThenElse(BasicAstExpression, BasicAstBlock, BasicAstBlock),
+}
+
+pub struct BasicAstInstruction {
+    pub label: Option<String>,
+    pub operation: BasicAstOperation,
+}
+
+#[derive(Default)]
+pub struct BasicAstBlock {
+    pub instructions: Vec<BasicAstInstruction>,
+}
+
+fn find_token_index(tokens: &[BasicToken], needle: BasicToken) -> Result<usize, ParseError> {
+    tokens
+        .iter()
+        .enumerate()
+        .find(|(_, t)| **t == needle)
+        .map(|(i, _)| i)
+        .ok_or(ParseError::MissingToken(needle))
+}
+
+fn parse_expression(mut tokens: &[BasicToken]) -> Result<BasicAstExpression, ParseError> {
+    /// Advances `tokens` by `by` tokens, skipping the first newline tokens if present
+    fn advance(tokens: &mut &[BasicToken], by: usize) {
+        while let Some(BasicToken::NewLine) = tokens.get(0) {
+            *tokens = &(*tokens)[1..];
+        }
+        *tokens = &(*tokens)[by..];
+    }
+
+    /// Returns the first non-newline token in `tokens`
+    fn peek<'a>(tokens: &'a &[BasicToken]) -> Option<&'a BasicToken> {
+        tokens.iter().find(|t| !matches!(t, BasicToken::NewLine))
+    }
+
+    /// Parses a single expression item
+    fn parse_expression_item(tokens: &mut &[BasicToken]) -> Result<BasicAstExpression, ParseError> {
+        match *tokens {
+            [BasicToken::Integer(int), ..] => {
+                advance(tokens, 1);
+                Ok(BasicAstExpression::Integer(*int))
+            },
+            [BasicToken::Float(float), ..] => {
+                advance(tokens, 1);
+                Ok(BasicAstExpression::Float(*float))
+            },
+            [BasicToken::Name(_fn_name), BasicToken::OpenParen, ..] => {
+                unimplemented!("Function calls are not yet supported");
+            },
+            [BasicToken::Name(name), ..] => {
+                advance(tokens, 1);
+                Ok(BasicAstExpression::Variable(name.clone()))
+            },
+            [] => Err(ParseError::ExpectedOperand),
+            _ => Err(ParseError::UnexpectedToken(tokens[0].clone())),
+        }
+    }
+
+    /// Given an lhs and a minimum precedence, eats as many binary operations as possible,
+    /// recursively calling itself when an operator with a higher precedence is encountered.
+    ///
+    /// See https://en.wikipedia.org/wiki/Operator-precedence_parser for more information
+    fn parse_expression_main(tokens: &mut &[BasicToken], lhs: BasicAstExpression, min_precedence: u8) -> Result<BasicAstExpression, ParseError> {
+        let mut ast = lhs;
+        while let Some(&BasicToken::Operator(operator)) = peek(tokens) {
+            if operator.precedence() < min_precedence {
+                break
+            }
+            advance(tokens, 1);
+            let mut rhs = parse_expression_item(tokens)?;
+            while let Some(&BasicToken::Operator(sub_operator)) = peek(tokens) {
+                if sub_operator.precedence() > operator.precedence() {
+                    rhs = parse_expression_main(tokens, rhs, operator.precedence() + 1)?;
+                }
+            }
+
+            ast = BasicAstExpression::Binary(operator, Box::new(ast), Box::new(rhs));
+        }
+
+        Ok(ast)
+    }
+
+    // Remove starting newlines
+    let lhs = parse_expression_item(&mut tokens)?;
+    advance(&mut tokens, 1);
+    let res = parse_expression_main(&mut tokens, lhs, 0)?;
+
+    assert_eq!(tokens, []);
+
+    Ok(res)
+}
+
+pub fn build_ast(mut tokens: &[BasicToken]) -> Result<BasicAstBlock, ParseError> {
+    let mut instructions = Vec::new();
+    let mut current_label: Option<String> = None;
+
+    while tokens.len() > 0 {
+        match &tokens[..] {
+            [BasicToken::NewLine, BasicToken::Integer(label), ..] => {
+                tokens = &tokens[2..];
+                current_label = Some(label.to_string());
+            }
+            [BasicToken::NewLine, BasicToken::Name(label), ..] => {
+                tokens = &tokens[2..];
+                current_label = Some(label.clone());
+            }
+            [BasicToken::NewLine, ..] => {
+                tokens = &tokens[1..];
+                current_label = None;
+            }
+            [BasicToken::Name(variable_name), BasicToken::Assign, ..] => {
+                tokens = &tokens[2..];
+                let expression = parse_expression(tokens)?;
+                // TODO: advance `tokens`
+                instructions.push(BasicAstInstruction {
+                    label: current_label.take(),
+                    operation: BasicAstOperation::Assign(variable_name.clone(), expression)
+                });
+            }
+            [BasicToken::If, ..] => {
+                tokens = &tokens[1..];
+                let then_index = find_token_index(tokens, BasicToken::Then)?;
+                let end_index = find_token_index(tokens, BasicToken::EndIf)?;
+
+                let condition = parse_expression(&tokens[0..then_index])?;
+                if let Ok(else_index) = find_token_index(tokens, BasicToken::Else) {
+                    let true_branch = build_ast(&tokens[(then_index + 1)..else_index])?;
+                    let false_branch = build_ast(&tokens[(else_index + 1)..end_index])?;
+
+                    instructions.push(BasicAstInstruction {
+                        label: current_label.take(),
+                        operation: BasicAstOperation::IfThenElse(condition, true_branch, false_branch)
+                    });
+                } else {
+                    let true_branch = build_ast(&tokens[(then_index + 1)..end_index])?;
+                    instructions.push(BasicAstInstruction {
+                        label: current_label.take(),
+                        operation: BasicAstOperation::IfThenElse(condition, true_branch, BasicAstBlock::default())
+                    });
+                }
+
+                tokens = &tokens[end_index..];
+            }
+            _ => {
+                return Err(ParseError::UnexpectedToken(tokens[0].clone()));
+            }
+        }
+    }
+
+    Ok(BasicAstBlock { instructions })
 }
 
 #[cfg(test)]
