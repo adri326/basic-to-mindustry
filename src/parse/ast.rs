@@ -9,6 +9,24 @@ pub enum BasicAstExpression {
     Binary(Operator, Box<BasicAstExpression>, Box<BasicAstExpression>),
 }
 
+macro_rules! impl_op_basic_ast_expression {
+    ( $std_op:ty, $fn_name:ident, $self_op:expr ) => {
+        impl $std_op for BasicAstExpression {
+            type Output = BasicAstExpression;
+
+            fn $fn_name(self, other: Self) -> Self {
+                Self::Binary($self_op, Box::new(self), Box::new(other))
+            }
+        }
+    };
+}
+
+// These are primarily here for ease of use in testing
+impl_op_basic_ast_expression!(std::ops::Add, add, Operator::Add);
+impl_op_basic_ast_expression!(std::ops::Sub, sub, Operator::Sub);
+impl_op_basic_ast_expression!(std::ops::Mul, mul, Operator::Mul);
+impl_op_basic_ast_expression!(std::ops::Div, div, Operator::Div);
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum BasicAstOperation {
     Assign(String, BasicAstExpression),
@@ -22,9 +40,26 @@ pub struct BasicAstInstruction {
     pub operation: BasicAstOperation,
 }
 
+impl From<BasicAstOperation> for BasicAstInstruction {
+    fn from(operation: BasicAstOperation) -> Self {
+        Self {
+            label: None,
+            operation,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct BasicAstBlock {
     pub instructions: Vec<BasicAstInstruction>,
+}
+
+impl BasicAstBlock {
+    pub fn new(instructions: impl IntoIterator<Item = BasicAstInstruction>) -> Self {
+        Self {
+            instructions: instructions.into_iter().collect(),
+        }
+    }
 }
 
 /// Returns the index of the first token matching `needle`
@@ -122,13 +157,13 @@ pub fn build_ast(tokens: &[BasicToken]) -> Result<BasicAstBlock, ParseError> {
     let mut current_label: Option<String> = None;
 
     while tokens.len() > 0 {
-        match tokens.peek(2) {
+        match tokens.peek(3) {
             [BasicToken::NewLine, BasicToken::Integer(label), ..] => {
                 tokens.take(2);
                 current_label = Some(label.to_string());
             }
-            [BasicToken::NewLine, BasicToken::Name(label), ..] => {
-                tokens.take(2);
+            [BasicToken::NewLine, BasicToken::Name(label), BasicToken::LabelEnd, ..] => {
+                tokens.take(3);
                 current_label = Some(label.clone());
             }
             [BasicToken::NewLine, ..] => {
@@ -173,9 +208,28 @@ pub fn build_ast(tokens: &[BasicToken]) -> Result<BasicAstBlock, ParseError> {
                     });
                 }
 
-                tokens.take(end_index);
+                tokens.take(end_index + 1);
+            }
+            [BasicToken::Goto, BasicToken::Integer(label), ..] => {
+                tokens.take(2);
+                instructions.push(BasicAstInstruction {
+                    label: current_label.take(),
+                    operation: BasicAstOperation::Jump(label.to_string()),
+                });
+            }
+            [BasicToken::Goto, BasicToken::Name(label), ..] => {
+                tokens.take(2);
+                instructions.push(BasicAstInstruction {
+                    label: current_label.take(),
+                    operation: BasicAstOperation::Jump(label.clone()),
+                });
             }
             _ => {
+                if cfg!(test) {
+                    eprintln!("No match found in main ast loop!");
+                    eprintln!("Lookahead: {:?}", tokens.peek(5));
+                    eprintln!("Instructions: {:?}", instructions);
+                }
                 return Err(ParseError::UnexpectedToken(tokens[0].clone()));
             }
         }

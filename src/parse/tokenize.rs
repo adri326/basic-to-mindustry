@@ -40,6 +40,7 @@ pub enum BasicToken {
     Else,
     EndIf,
     Goto,
+    LabelEnd,
     OpenParen,
     CloseParen,
     Integer(i64),
@@ -111,6 +112,7 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
     let match_integer = Regex::new(r"^[0-9]+").unwrap();
     let match_assign = Regex::new(r"^=").unwrap();
     let match_operator = Regex::new(r"^(?:[+\-*/%]|[<>]=?|[!=]=|<<|>>)").unwrap();
+    let match_label_end = Regex::new(r"^:").unwrap();
     let match_paren = Regex::new(r"^(?:\(|\))").unwrap();
     // TODO: handle escapes
     let match_string = Regex::new(r#""[^"]*""#).unwrap();
@@ -153,6 +155,7 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
                     ">>" => Operator::RShift,
                     _ => unreachable!(),
                 })),
+                match_label_end => (BasicToken::LabelEnd),
                 match_paren(paren) => (if paren == "(" {
                     BasicToken::OpenParen
                 } else {
