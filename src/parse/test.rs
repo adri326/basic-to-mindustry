@@ -256,36 +256,33 @@ fn test_build_ast(raw: &str) -> BasicAstBlock {
 fn test_ast_basics() {
     assert_eq!(
         test_build_ast("LET X = 2 * 5\n"),
-        BasicAstBlock::new([BasicAstOperation::Assign(
+        BasicAstBlock::new([BasicAstInstruction::Assign(
             String::from("X"),
             BasicAstExpression::Integer(2) * BasicAstExpression::Integer(5)
-        )
-        .into()])
+        )])
     );
 
     assert_eq!(
         test_build_ast("IF X < 0 THEN\nX = 0-X\nEND IF"),
-        BasicAstBlock::new([BasicAstOperation::IfThenElse(
+        BasicAstBlock::new([BasicAstInstruction::IfThenElse(
             BasicAstExpression::Binary(
                 Operator::Lt,
                 Box::new(BasicAstExpression::Variable(String::from("X"))),
                 Box::new(BasicAstExpression::Integer(0))
             ),
-            BasicAstBlock::new([BasicAstOperation::Assign(
+            BasicAstBlock::new([BasicAstInstruction::Assign(
                 String::from("X"),
                 BasicAstExpression::Integer(0) - BasicAstExpression::Variable(String::from("X"))
-            )
-            .into()]),
+            )]),
             BasicAstBlock::default()
-        )
-        .into(),])
+        ),])
     );
 
     assert_eq!(
         test_build_ast("GOTO 10\nGOTO hello"),
         BasicAstBlock::new([
-            BasicAstOperation::Jump(String::from("10")).into(),
-            BasicAstOperation::Jump(String::from("hello")).into(),
+            BasicAstInstruction::Jump(String::from("10")),
+            BasicAstInstruction::Jump(String::from("hello")),
         ])
     );
 }
@@ -295,42 +292,26 @@ fn test_ast_labels() {
     assert_eq!(
         test_build_ast("10 LET X = 0\n20 LET Y = 2 * X\n"),
         BasicAstBlock::new([
-            BasicAstInstruction {
-                label: Some(String::from("10")),
-                operation: BasicAstOperation::Assign(
-                    String::from("X"),
-                    BasicAstExpression::Integer(0)
-                )
-            },
-            BasicAstInstruction {
-                label: Some(String::from("20")),
-                operation: BasicAstOperation::Assign(
-                    String::from("Y"),
-                    BasicAstExpression::Integer(2)
-                        * BasicAstExpression::Variable(String::from("X"))
-                )
-            },
+            BasicAstInstruction::JumpLabel(String::from("10")),
+            BasicAstInstruction::Assign(String::from("X"), BasicAstExpression::Integer(0)),
+            BasicAstInstruction::JumpLabel(String::from("20")),
+            BasicAstInstruction::Assign(
+                String::from("Y"),
+                BasicAstExpression::Integer(2) * BasicAstExpression::Variable(String::from("X"))
+            ),
         ])
     );
 
     assert_eq!(
         test_build_ast("start: LET X = 0\nmultiply: LET Y = 2 * X\n"),
         BasicAstBlock::new([
-            BasicAstInstruction {
-                label: Some(String::from("start")),
-                operation: BasicAstOperation::Assign(
-                    String::from("X"),
-                    BasicAstExpression::Integer(0)
-                )
-            },
-            BasicAstInstruction {
-                label: Some(String::from("multiply")),
-                operation: BasicAstOperation::Assign(
-                    String::from("Y"),
-                    BasicAstExpression::Integer(2)
-                        * BasicAstExpression::Variable(String::from("X"))
-                )
-            },
+            BasicAstInstruction::JumpLabel(String::from("start")),
+            BasicAstInstruction::Assign(String::from("X"), BasicAstExpression::Integer(0)),
+            BasicAstInstruction::JumpLabel(String::from("multiply")),
+            BasicAstInstruction::Assign(
+                String::from("Y"),
+                BasicAstExpression::Integer(2) * BasicAstExpression::Variable(String::from("X"))
+            ),
         ])
     );
 }

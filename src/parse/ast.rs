@@ -28,25 +28,11 @@ impl_op_basic_ast_expression!(std::ops::Mul, mul, Operator::Mul);
 impl_op_basic_ast_expression!(std::ops::Div, div, Operator::Div);
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum BasicAstOperation {
+pub enum BasicAstInstruction {
+    JumpLabel(String),
     Assign(String, BasicAstExpression),
     Jump(String),
     IfThenElse(BasicAstExpression, BasicAstBlock, BasicAstBlock),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct BasicAstInstruction {
-    pub label: Option<String>,
-    pub operation: BasicAstOperation,
-}
-
-impl From<BasicAstOperation> for BasicAstInstruction {
-    fn from(operation: BasicAstOperation) -> Self {
-        Self {
-            label: None,
-            operation,
-        }
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -154,29 +140,27 @@ pub(crate) fn parse_expression(
 pub fn build_ast(tokens: &[BasicToken]) -> Result<BasicAstBlock, ParseError> {
     let mut tokens = Cursor::from(tokens);
     let mut instructions = Vec::new();
-    let mut current_label: Option<String> = None;
 
     while tokens.len() > 0 {
         match tokens.peek(3) {
             [BasicToken::NewLine, BasicToken::Integer(label), ..] => {
                 tokens.take(2);
-                current_label = Some(label.to_string());
+                instructions.push(BasicAstInstruction::JumpLabel(label.to_string()));
             }
             [BasicToken::NewLine, BasicToken::Name(label), BasicToken::LabelEnd, ..] => {
                 tokens.take(3);
-                current_label = Some(label.clone());
+                instructions.push(BasicAstInstruction::JumpLabel(label.clone()));
             }
             [BasicToken::NewLine, ..] => {
                 tokens.take(1);
-                current_label = None;
             }
             [BasicToken::Name(variable_name), BasicToken::Assign, ..] => {
                 tokens.take(2);
                 let expression = parse_expression(&mut tokens)?;
-                instructions.push(BasicAstInstruction {
-                    label: current_label.take(),
-                    operation: BasicAstOperation::Assign(variable_name.clone(), expression),
-                });
+                instructions.push(BasicAstInstruction::Assign(
+                    variable_name.clone(),
+                    expression,
+                ));
             }
             [BasicToken::If, ..] => {
                 tokens.take(1);
@@ -188,41 +172,29 @@ pub fn build_ast(tokens: &[BasicToken]) -> Result<BasicAstBlock, ParseError> {
                     let true_branch = build_ast(&tokens[(then_index + 1)..else_index])?;
                     let false_branch = build_ast(&tokens[(else_index + 1)..end_index])?;
 
-                    instructions.push(BasicAstInstruction {
-                        label: current_label.take(),
-                        operation: BasicAstOperation::IfThenElse(
-                            condition,
-                            true_branch,
-                            false_branch,
-                        ),
-                    });
+                    instructions.push(BasicAstInstruction::IfThenElse(
+                        condition,
+                        true_branch,
+                        false_branch,
+                    ));
                 } else {
                     let true_branch = build_ast(&tokens[(then_index + 1)..end_index])?;
-                    instructions.push(BasicAstInstruction {
-                        label: current_label.take(),
-                        operation: BasicAstOperation::IfThenElse(
-                            condition,
-                            true_branch,
-                            BasicAstBlock::default(),
-                        ),
-                    });
+                    instructions.push(BasicAstInstruction::IfThenElse(
+                        condition,
+                        true_branch,
+                        BasicAstBlock::default(),
+                    ));
                 }
 
                 tokens.take(end_index + 1);
             }
             [BasicToken::Goto, BasicToken::Integer(label), ..] => {
                 tokens.take(2);
-                instructions.push(BasicAstInstruction {
-                    label: current_label.take(),
-                    operation: BasicAstOperation::Jump(label.to_string()),
-                });
+                instructions.push(BasicAstInstruction::Jump(label.to_string()));
             }
             [BasicToken::Goto, BasicToken::Name(label), ..] => {
                 tokens.take(2);
-                instructions.push(BasicAstInstruction {
-                    label: current_label.take(),
-                    operation: BasicAstOperation::Jump(label.clone()),
-                });
+                instructions.push(BasicAstInstruction::Jump(label.clone()));
             }
             _ => {
                 if cfg!(test) {
