@@ -1,0 +1,21 @@
+x = 0
+
+start:
+    x = x + 1
+    IF x % 3 == 0 THEN
+        IF x % 5 == 0 THEN
+            PRINT "fizzbuzz"
+        ELSE
+            PRINT "fizz"
+        END IF
+    ELSE
+        IF x % 5 == 0 THEN
+            PRINT "buzz"
+        ELSE
+            PRINT x
+        END IF
+    END IF
+
+    PRINT_FLUSH(message1)
+
+GOTO start

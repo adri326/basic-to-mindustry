@@ -6,6 +6,7 @@ pub enum BasicAstExpression {
     Integer(i64),
     Float(f64),
     Variable(String),
+    String(String),
     Binary(Operator, Box<BasicAstExpression>, Box<BasicAstExpression>),
 }
 
@@ -33,6 +34,8 @@ pub enum BasicAstInstruction {
     Assign(String, BasicAstExpression),
     Jump(String),
     IfThenElse(BasicAstExpression, BasicAstBlock, BasicAstBlock),
+    Print(Vec<(BasicAstExpression, bool)>),
+    CallBuiltin(String, Vec<BasicAstExpression>),
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -86,6 +89,10 @@ pub(crate) fn parse_expression(
                 tokens.take(1);
                 Ok(BasicAstExpression::Variable(name.clone()))
             }
+            [BasicToken::String(string), ..] => {
+                tokens.take(1);
+                Ok(BasicAstExpression::String(string.clone()))
+            }
             [BasicToken::OpenParen, ..] => {
                 tokens.take(1);
                 let res = parse_expression(tokens)?;
@@ -138,10 +145,21 @@ pub(crate) fn parse_expression(
 }
 
 pub fn build_ast(tokens: &[BasicToken]) -> Result<BasicAstBlock, ParseError> {
+    enum Context {
+        Main,
+        If(BasicAstExpression),
+        IfElse(BasicAstExpression, BasicAstBlock),
+    }
+
     let mut tokens = Cursor::from(tokens);
-    let mut instructions = Vec::new();
+    let mut context_stack: Vec<(Vec<BasicAstInstruction>, Context)> =
+        vec![(Vec::new(), Context::Main)];
 
     while tokens.len() > 0 {
+        let Some((ref mut instructions, _context)) = context_stack.last_mut() else {
+            unreachable!("Context stack got emptied!");
+        };
+
         match tokens.peek(3) {
             [BasicToken::NewLine, BasicToken::Integer(label), ..] => {
                 tokens.take(2);
@@ -165,28 +183,59 @@ pub fn build_ast(tokens: &[BasicToken]) -> Result<BasicAstBlock, ParseError> {
             [BasicToken::If, ..] => {
                 tokens.take(1);
                 let then_index = find_token_index(&tokens, BasicToken::Then)?;
-                let end_index = find_token_index(&tokens, BasicToken::EndIf)?;
+                // let end_index = find_token_index(&tokens, BasicToken::EndIf)?;
 
                 let condition = parse_expression(&mut tokens.range(0..then_index))?;
-                if let Ok(else_index) = find_token_index(&tokens, BasicToken::Else) {
-                    let true_branch = build_ast(&tokens[(then_index + 1)..else_index])?;
-                    let false_branch = build_ast(&tokens[(else_index + 1)..end_index])?;
 
-                    instructions.push(BasicAstInstruction::IfThenElse(
-                        condition,
-                        true_branch,
-                        false_branch,
-                    ));
-                } else {
-                    let true_branch = build_ast(&tokens[(then_index + 1)..end_index])?;
-                    instructions.push(BasicAstInstruction::IfThenElse(
-                        condition,
-                        true_branch,
-                        BasicAstBlock::default(),
-                    ));
+                tokens.take(then_index + 1);
+
+                context_stack.push((Vec::new(), Context::If(condition)));
+            }
+            [BasicToken::Else, ..] => {
+                tokens.take(1);
+
+                match context_stack.pop().unwrap() {
+                    (instructions, Context::If(condition)) => {
+                        context_stack.push((
+                            Vec::new(),
+                            Context::IfElse(condition, BasicAstBlock { instructions }),
+                        ));
+                    }
+                    (_instructions, _) => {
+                        return Err(ParseError::UnexpectedToken(BasicToken::Else));
+                    }
                 }
+            }
+            [BasicToken::EndIf, ..] => {
+                tokens.take(1);
 
-                tokens.take(end_index + 1);
+                match context_stack.pop().unwrap() {
+                    (instructions, Context::If(condition)) => {
+                        let Some((ref mut parent_instructions, _)) = context_stack.last_mut() else {
+                            unreachable!("Context::If not wrapped in another context");
+                        };
+
+                        parent_instructions.push(BasicAstInstruction::IfThenElse(
+                            condition,
+                            BasicAstBlock { instructions },
+                            BasicAstBlock::default(),
+                        ));
+                    }
+                    (instructions, Context::IfElse(condition, true_branch)) => {
+                        let Some((ref mut parent_instructions, _)) = context_stack.last_mut() else {
+                            unreachable!("Context::IfElse not wrapped in another context");
+                        };
+
+                        parent_instructions.push(BasicAstInstruction::IfThenElse(
+                            condition,
+                            true_branch,
+                            BasicAstBlock { instructions },
+                        ));
+                    }
+                    _ => {
+                        return Err(ParseError::UnexpectedToken(BasicToken::EndIf));
+                    }
+                }
             }
             [BasicToken::Goto, BasicToken::Integer(label), ..] => {
                 tokens.take(2);
@@ -195,6 +244,53 @@ pub fn build_ast(tokens: &[BasicToken]) -> Result<BasicAstBlock, ParseError> {
             [BasicToken::Goto, BasicToken::Name(label), ..] => {
                 tokens.take(2);
                 instructions.push(BasicAstInstruction::Jump(label.clone()));
+            }
+            [BasicToken::Print, ..] => {
+                tokens.take(1);
+
+                let mut expressions = Vec::new();
+
+                if let Some(BasicToken::NewLine) = tokens.get(0) {
+                    instructions.push(BasicAstInstruction::Print(expressions));
+                } else {
+                    expressions.push((parse_expression(&mut tokens)?, false));
+
+                    while let Some(BasicToken::Comma) = tokens.get(0) {
+                        expressions.push((parse_expression(&mut tokens)?, false));
+                    }
+
+                    instructions.push(BasicAstInstruction::Print(expressions));
+                }
+
+                // TODO: expect newline
+            }
+            [BasicToken::Name(fn_name), BasicToken::OpenParen, ..] => {
+                tokens.take(2);
+                let mut arguments = Vec::new();
+
+                while tokens.get(0) != Some(&BasicToken::CloseParen) {
+                    arguments.push(parse_expression(&mut tokens)?);
+
+                    match tokens.take(1) {
+                        [BasicToken::Comma] => {}
+                        [BasicToken::CloseParen] => break,
+                        _ => return Err(ParseError::MissingToken(BasicToken::Comma)),
+                    }
+                }
+
+                // TODO: expect closeparen
+
+                tokens.take(1);
+
+                let lowercase_fn_name = fn_name.to_lowercase();
+                if matches!(lowercase_fn_name.as_str(), "print_flush") {
+                    instructions.push(BasicAstInstruction::CallBuiltin(
+                        lowercase_fn_name,
+                        arguments,
+                    ));
+                } else {
+                    unimplemented!();
+                }
             }
             _ => {
                 if cfg!(test) {
@@ -206,6 +302,23 @@ pub fn build_ast(tokens: &[BasicToken]) -> Result<BasicAstBlock, ParseError> {
             }
         }
     }
+
+    if context_stack.len() == 0 {
+        unreachable!("Empty context stack");
+    } else if context_stack.len() > 1 {
+        match &context_stack.last().unwrap().1 {
+            Context::If(_) | Context::IfElse(_, _) => {
+                return Err(ParseError::MissingToken(BasicToken::EndIf));
+            }
+            Context::Main => {
+                unreachable!("There cannot be another context below the main context");
+            }
+        }
+    }
+
+    let (instructions, Context::Main) = context_stack.into_iter().next().unwrap() else {
+        unreachable!("The lowermost context must be the main context");
+    };
 
     Ok(BasicAstBlock { instructions })
 }

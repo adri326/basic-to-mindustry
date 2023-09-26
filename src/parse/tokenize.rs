@@ -43,6 +43,8 @@ pub enum BasicToken {
     LabelEnd,
     OpenParen,
     CloseParen,
+    Comma,
+    Print,
     Integer(i64),
     Float(f64),
     Name(String),
@@ -105,12 +107,13 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
     let mut res = Vec::new();
     let match_let = Regex::new(r"(?i)^let").unwrap();
     let match_jump = Regex::new(r"(?i)^go\s*to").unwrap();
-    let match_word = Regex::new(r"(?i)^(?:if|then|else|end\s?if)").unwrap();
+    let match_word = Regex::new(r"(?i)^(?:if|then|else|end\s?if|print)(?:\s|$)").unwrap();
     let match_space = Regex::new(r"^\s+").unwrap();
     let match_variable = Regex::new(r"^@?[a-zA-Z_][a-zA-Z_0-9]*").unwrap();
     let match_float = Regex::new(r"^[0-9]*\.[0-9]+").unwrap();
     let match_integer = Regex::new(r"^[0-9]+").unwrap();
     let match_assign = Regex::new(r"^=").unwrap();
+    let match_comma = Regex::new(r"^,").unwrap();
     let match_operator = Regex::new(r"^(?:[+\-*/%]|[<>]=?|[!=]=|<<|>>)").unwrap();
     let match_label_end = Regex::new(r"^:").unwrap();
     let match_paren = Regex::new(r"^(?:\(|\))").unwrap();
@@ -130,17 +133,18 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
                 match_let => (),
                 match_comment => (),
                 match_jump => (BasicToken::Goto),
-                match_word(word) => (match word.to_lowercase().as_str() {
+                match_word(word) => (match word.to_lowercase().as_str().trim() {
                     "if" => BasicToken::If,
                     "then" => BasicToken::Then,
                     "else" => BasicToken::Else,
                     "end if" | "endif" => BasicToken::EndIf,
-                    _ => unreachable!(),
+                    "print" => BasicToken::Print,
+                    _ => unreachable!("{}", word),
                 }),
                 match_variable(name) => (BasicToken::Name(name.to_string())),
                 match_float(float) => (BasicToken::Float(float.parse().unwrap())),
                 match_integer(int) => (BasicToken::Integer(int.parse().unwrap())),
-                match_assign => (BasicToken::Assign),
+                match_comma => (BasicToken::Comma),
                 match_operator(op) => (BasicToken::Operator(match op {
                     "+" => Operator::Add,
                     "-" => Operator::Sub,
@@ -153,8 +157,11 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
                     ">=" => Operator::Gte,
                     "<<" => Operator::LShift,
                     ">>" => Operator::RShift,
+                    "==" => Operator::Eq,
+                    "!=" => Operator::Neq,
                     _ => unreachable!(),
                 })),
+                match_assign => (BasicToken::Assign),
                 match_label_end => (BasicToken::LabelEnd),
                 match_paren(paren) => (if paren == "(" {
                     BasicToken::OpenParen

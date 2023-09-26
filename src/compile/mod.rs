@@ -15,8 +15,8 @@ impl std::fmt::Display for Operand {
         match self {
             Operand::Variable(name) => write!(f, "{}", name),
             Operand::String(string) => {
-                todo!();
-                // write!(f, "\"{}\"", string),
+                let escaped = string.replace('\\', r#"\\"#).replace('"', r#"\""#);
+                write!(f, "\"{}\"", escaped)
             }
             Operand::Integer(int) => write!(f, "{}", int),
             Operand::Float(float) => write!(f, "{}", float),
@@ -31,6 +31,7 @@ pub enum MindustryOperation {
     JumpIf(String, Operator, Operand, Operand),
     Operator(String, Operator, Operand, Operand),
     Set(String, Operand),
+    Generic(String, Vec<Operand>),
 }
 
 #[derive(Debug, Clone)]
@@ -101,6 +102,11 @@ fn translate_expression(
         BasicAstExpression::Variable(name) => vec![MindustryOperation::Set(
             target_name,
             Operand::Variable(name.clone()),
+        )]
+        .into(),
+        BasicAstExpression::String(string) => vec![MindustryOperation::Set(
+            target_name,
+            Operand::String(string.clone()),
         )]
         .into(),
         BasicAstExpression::Binary(op, left, right) => {
@@ -179,6 +185,46 @@ pub fn translate_ast(basic_ast: &BasicAstBlock, namer: &mut Namer) -> MindustryP
                     res.push(MindustryOperation::JumpLabel(end_label));
                 }
             }
+            Instr::Print(expressions) => {
+                for expression in expressions {
+                    let tmp_name = namer.temporary();
+                    res.append(&mut translate_expression(
+                        &expression.0,
+                        namer,
+                        tmp_name.clone(),
+                    ));
+                    res.push(MindustryOperation::Generic(
+                        String::from("print"),
+                        vec![Operand::Variable(tmp_name)],
+                    ));
+                }
+            }
+            Instr::CallBuiltin(name, arguments) => {
+                let argument_names = (0..arguments.len())
+                    .map(|_| namer.temporary())
+                    .collect::<Vec<_>>();
+                for (i, argument) in arguments.iter().enumerate() {
+                    res.append(&mut translate_expression(
+                        argument,
+                        namer,
+                        argument_names[i].clone(),
+                    ));
+                }
+
+                match name.as_str() {
+                    "print_flush" => {
+                        if arguments.len() == 1 {
+                            res.push(MindustryOperation::Generic(
+                                String::from("printflush"),
+                                vec![Operand::Variable(argument_names[0].clone())],
+                            ));
+                        } else {
+                            panic!("Invalid amount of arguments: {}", arguments.len());
+                        }
+                    }
+                    _ => unimplemented!(),
+                }
+            }
         }
     }
 
@@ -251,6 +297,12 @@ impl std::fmt::Display for MindustryProgram {
                 }
                 MindustryOperation::Set(name, value) => {
                     writeln!(f, "set {} {}", name, value)?;
+                }
+                MindustryOperation::Generic(name, operands) => {
+                    write!(f, "{}", name)?;
+                    for operand in operands {
+                        write!(f, " {}", operand)?;
+                    }
                 }
             }
         }
