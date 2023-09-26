@@ -1,5 +1,5 @@
 use basic_to_mindustry::{
-    compile::{translate_ast, Namer},
+    compile::{optimize_set_use, translate_ast, Namer},
     parse::{build_ast, tokenize},
 };
 
@@ -12,4 +12,9 @@ fn main() {
     let transformed = translate_ast(&parsed, &mut Namer::default());
 
     println!("{}", transformed);
+
+    let optimized = optimize_set_use(transformed);
+
+    println!("== OPT ==");
+    println!("{}", optimized);
 }

@@ -2,6 +2,9 @@ use regex::Regex;
 
 use crate::parse::{BasicAstBlock, BasicAstExpression, Operator};
 
+mod optimize;
+pub use optimize::*;
+
 #[derive(Debug, Clone)]
 pub enum Operand {
     Variable(String),
@@ -32,6 +35,30 @@ pub enum MindustryOperation {
     Operator(String, Operator, Operand, Operand),
     Set(String, Operand),
     Generic(String, Vec<Operand>),
+}
+
+impl MindustryOperation {
+    fn operands<'a>(&'a self) -> Box<[&'a Operand]> {
+        match self {
+            Self::JumpIf(_label, _operator, lhs, rhs) => Box::new([lhs, rhs]),
+            Self::Operator(_target, _operator, lhs, rhs) => Box::new([lhs, rhs]),
+            Self::Set(_target, value) => Box::new([value]),
+            Self::Generic(_name, operands) => {
+                operands.iter().collect::<Vec<_>>().into_boxed_slice()
+            }
+            _ => Box::new([]),
+        }
+    }
+
+    fn operands_mut<'a>(&'a mut self) -> Vec<&'a mut Operand> {
+        match self {
+            Self::JumpIf(_label, _operator, lhs, rhs) => vec![lhs, rhs],
+            Self::Operator(_target, _operator, lhs, rhs) => vec![lhs, rhs],
+            Self::Set(_target, value) => vec![value],
+            Self::Generic(_name, operands) => operands.iter_mut().collect::<Vec<_>>(),
+            _ => vec![],
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -303,6 +330,7 @@ impl std::fmt::Display for MindustryProgram {
                     for operand in operands {
                         write!(f, " {}", operand)?;
                     }
+                    write!(f, "\n")?;
                 }
             }
         }
