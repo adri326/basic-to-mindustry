@@ -68,7 +68,8 @@ pub fn optimize_set_use(program: MindustryProgram) -> MindustryProgram {
                     if matches!(
                         assigned_var.as_str(),
                         "@this" | "@thisx" | "@thisy" | "@links"
-                    ) {
+                    ) || is_unit_constant(assigned_var.as_str())
+                    {
                         return true;
                     }
                     if assigned_var.starts_with('@') {
@@ -119,7 +120,7 @@ pub fn optimize_set_use(program: MindustryProgram) -> MindustryProgram {
     for instruction in instructions.iter() {
         let MindustryOperation::Set(set_name, _) = instruction else {
             res.push(instruction.clone());
-            continue
+            continue;
         };
 
         if !tmp_regex.is_match(set_name) {
@@ -150,6 +151,27 @@ pub fn optimize_set_use(program: MindustryProgram) -> MindustryProgram {
     }
 
     res
+}
+
+fn is_unit_constant(name: &str) -> bool {
+    matches!(
+        name,
+        "@stell"
+            | "@locus"
+            | "@precept"
+            | "@vanquish"
+            | "@conquer"
+            | "@merui"
+            | "@cleroi"
+            | "@anthicus"
+            | "@tecta"
+            | "@collaris"
+            | "@elude"
+            | "@avert"
+            | "@obviate"
+            | "@quell"
+            | "@disrupt"
+    )
 }
 
 // TODO:

@@ -1,3 +1,4 @@
+use crate::common::*;
 use crate::cursor::Cursor;
 
 use super::*;
@@ -243,7 +244,7 @@ fn test_build_ast(raw: &str) -> BasicAstBlock {
             e, raw
         );
     });
-    let parsed = build_ast(&tokens).unwrap_or_else(|e| {
+    let parsed = build_ast(&tokens, &Default::default()).unwrap_or_else(|e| {
         panic!(
             "Error while parsing: {:?}\nProgram:\n```\n{}\n```\nTokens:\n{:#?}",
             e, raw, tokens

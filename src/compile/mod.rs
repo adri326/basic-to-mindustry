@@ -1,6 +1,7 @@
 use regex::Regex;
 
-use crate::parse::{BasicAstBlock, BasicAstExpression, Operator};
+use crate::common::*;
+use crate::parse::{BasicAstBlock, BasicAstExpression};
 
 mod optimize;
 pub use optimize::*;
@@ -33,6 +34,7 @@ pub enum MindustryOperation {
     Jump(String),
     JumpIf(String, Operator, Operand, Operand),
     Operator(String, Operator, Operand, Operand),
+    UnaryOperator(String, UnaryOperator, Operand),
     Set(String, Operand),
     Generic(String, Vec<Operand>),
 }
@@ -153,10 +155,25 @@ fn translate_expression(
 
             res
         }
+        BasicAstExpression::Unary(op, value) => {
+            let mut res = translate_expression(value.as_ref(), namer, target_name.clone());
+
+            res.push(MindustryOperation::UnaryOperator(
+                target_name.clone(),
+                *op,
+                Operand::Variable(target_name),
+            ));
+
+            res
+        }
     }
 }
 
-pub fn translate_ast(basic_ast: &BasicAstBlock, namer: &mut Namer) -> MindustryProgram {
+pub fn translate_ast(
+    basic_ast: &BasicAstBlock,
+    namer: &mut Namer,
+    config: &Config,
+) -> MindustryProgram {
     use crate::parse::BasicAstInstruction as Instr;
     let mut res = MindustryProgram::new();
 
@@ -190,12 +207,12 @@ pub fn translate_ast(basic_ast: &BasicAstBlock, namer: &mut Namer) -> MindustryP
                         Operand::Variable(String::from("true")),
                     ));
 
-                    res.append(&mut translate_ast(true_branch, namer));
+                    res.append(&mut translate_ast(true_branch, namer, config));
 
                     res.push(MindustryOperation::Jump(end_label.clone()));
                     res.push(MindustryOperation::JumpLabel(else_label));
 
-                    res.append(&mut translate_ast(false_branch, namer));
+                    res.append(&mut translate_ast(false_branch, namer, config));
 
                     res.push(MindustryOperation::JumpLabel(end_label));
                 } else {
@@ -207,7 +224,7 @@ pub fn translate_ast(basic_ast: &BasicAstBlock, namer: &mut Namer) -> MindustryP
                         Operand::Variable(String::from("true")),
                     ));
 
-                    res.append(&mut translate_ast(true_branch, namer));
+                    res.append(&mut translate_ast(true_branch, namer, config));
 
                     res.push(MindustryOperation::JumpLabel(end_label));
                 }
@@ -238,18 +255,14 @@ pub fn translate_ast(basic_ast: &BasicAstBlock, namer: &mut Namer) -> MindustryP
                     ));
                 }
 
-                match name.as_str() {
-                    "print_flush" => {
-                        if arguments.len() == 1 {
-                            res.push(MindustryOperation::Generic(
-                                String::from("printflush"),
-                                vec![Operand::Variable(argument_names[0].clone())],
-                            ));
-                        } else {
-                            panic!("Invalid amount of arguments: {}", arguments.len());
-                        }
-                    }
-                    _ => unimplemented!(),
+                if let Some((target_name, _)) = config.builtin_functions.get(name) {
+                    res.push(MindustryOperation::Generic(
+                        target_name.clone(),
+                        argument_names
+                            .into_iter()
+                            .map(|name| Operand::Variable(name))
+                            .collect(),
+                    ));
                 }
             }
         }
@@ -322,6 +335,15 @@ impl std::fmt::Display for MindustryProgram {
                         rhs
                     )?;
                 }
+                MindustryOperation::UnaryOperator(name, operator, lhs) => {
+                    writeln!(
+                        f,
+                        "op {} {} {} 0",
+                        format_unary_operator(*operator),
+                        name,
+                        lhs
+                    )?;
+                }
                 MindustryOperation::Set(name, value) => {
                     writeln!(f, "set {} {}", name, value)?;
                 }
@@ -350,23 +372,5 @@ fn format_condition(operator: Operator) -> &'static str {
         x => {
             panic!("Operator {:?} is not a condition!", x);
         }
-    }
-}
-
-fn format_operator(operator: Operator) -> &'static str {
-    match operator {
-        Operator::Eq => "equal",
-        Operator::Neq => "notEqual",
-        Operator::Lt => "lessThan",
-        Operator::Lte => "lessThanEqual",
-        Operator::Gt => "greaterThan",
-        Operator::Gte => "greaterThanEqual",
-        Operator::Add => "add",
-        Operator::Sub => "sub",
-        Operator::Mul => "mul",
-        Operator::Div => "div",
-        Operator::Mod => "mod",
-        Operator::RShift => "shr",
-        Operator::LShift => "shl",
     }
 }

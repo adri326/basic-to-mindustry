@@ -1,35 +1,5 @@
+use crate::common::*;
 use regex::Regex;
-
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub enum Operator {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
-    RShift,
-    LShift,
-    Gt,
-    Lt,
-    Gte,
-    Lte,
-    Eq,
-    Neq,
-    // etc.
-}
-
-impl Operator {
-    pub(crate) fn precedence(self) -> u8 {
-        use Operator as O;
-        match self {
-            O::Add | O::Sub => 3,
-            O::RShift | O::LShift => 4,
-            O::Mod => 5,
-            O::Mul | O::Div => 10,
-            O::Eq | O::Neq | O::Gt | O::Lt | O::Gte | O::Lte => 0,
-        }
-    }
-}
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum BasicToken {
@@ -57,6 +27,7 @@ pub enum ParseError {
     InvalidToken(String),
     UnexpectedToken(BasicToken),
     MissingToken(BasicToken),
+    InvalidArgumentCount(String, usize, usize),
     ExpectedOperand,
 }
 

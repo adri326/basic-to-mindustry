@@ -1,0 +1,173 @@
+REM This is an example of a more complex program,
+REM which spawns procedural waves
+
+LET wave = 0
+LET timeout = @time + 120000
+
+initial_wait:
+    LET remaining = timeout - @time
+    IF remaining <= 0 THEN
+        GOTO main
+    END IF
+
+    PRINT "[red]Enemies[white] approaching: "
+    PRINT ceil(remaining / 1000), " s"
+    PRINT_MESSAGE_MISSION()
+
+    wait(0.5)
+
+    GOTO initial_wait
+main:
+    wave = wave + 1
+    REM TODO: difficult control wave multiplier
+    LET progression = POW(wave / 4, 0.75)
+    REM TODO: optimize duplicate operations
+    progression = MIN(progression / 2 + rand(progression / 2), 10)
+
+    LET units = 2 + SQRT(progression) * 4 + RAND(progression * 2)
+    REM TODO: difficulty control unit amount
+    units = CEIL(units * 1)
+    LET tank_units = FLOOR(RAND(units))
+    LET mech_units = FLOOR(RAND(units - tank_units))
+    LET air_units = units - tank_units - mech_units
+
+    LET spawnx = 30
+    LET spawny = 50
+
+    GOTO spawn_tank
+    spawn_tank_end:
+    GOTO spawn_mech
+    spawn_mech_end:
+    LET spawnx = 20
+    GOTO spawn_air
+    spawn_air_end:
+
+    WRITE(wave, cell1, 1)
+    READ(timeout, cell1, 0)
+    timeout = @time + timeout * 1000
+
+    main_wait:
+        LET remaining = timeout - @time
+        IF remaining <= 0 THEN
+            GOTO main
+        END IF
+
+        PRINT "[yellow]Wave ", wave, "[white] - "
+        PRINT "Next wave: ", ceil(remaining / 1000), " s"
+        PRINT_MESSAGE_MISSION()
+
+        wait(0.5)
+
+        GOTO main_wait
+
+spawn_tank:
+    LET spawned = 0
+    spawn_tank_loop:
+        LET roll = rand(progression)
+        IF roll >= 3 THEN
+            IF roll >= 4 THEN
+                SPAWN(@conquer, spawnx, spawny, 0, @crux, _)
+                spawnx = spawnx - 5.75
+            ELSE
+                SPAWN(@vanquish, spawnx, spawny, 0, @crux, _)
+                spawnx = spawnx - 3.5
+            END IF
+        ELSE
+            IF roll >= 2 THEN
+                SPAWN(@precept, spawnx, spawny, 0, @crux, _)
+                spawnx = spawnx - 3.25
+            ELSE
+                REM Small units can unclump easily
+                IF roll >= 1 THEN
+                    SPAWN(@locus, spawnx, spawny, 0, @crux, _)
+                    spawnx = spawnx - 1.0
+                ELSE
+                    SPAWN(@stell, spawnx, spawny, 0, @crux, _)
+                    spawnx = spawnx - 1.0
+                END IF
+            END IF
+        END IF
+
+        IF spawnx < 10 THEN
+            spawnx = 10
+        END IF
+
+        spawned = spawned + 1
+        IF spawned < tank_units THEN
+            GOTO spawn_tank_loop
+        END IF
+        GOTO spawn_tank_end
+
+spawn_mech:
+    LET spawned = 0
+    spawn_mech_loop:
+        LET roll = rand(progression)
+        IF roll >= 3 THEN
+            IF roll >= 4 THEN
+                SPAWN(@collaris, spawnx, spawny, 0, @crux, _)
+                spawnx = spawnx - 5.5
+            ELSE
+                SPAWN(@tecta, spawnx, spawny, 0, @crux, _)
+                spawnx = spawnx - 2.87
+            END IF
+        ELSE
+            IF roll >= 2 THEN
+                SPAWN(@anthicus, spawnx, spawny, 0, @crux, _)
+                spawnx = spawnx - 2.62
+            ELSE
+                IF roll >= 1 THEN
+                    SPAWN(@cleroi, spawnx, spawny, 0, @crux, _)
+                    spawnx = spawnx - 1.0
+                ELSE
+                    SPAWN(@merui, spawnx, spawny, 0, @crux, _)
+                    spawnx = spawnx - 1.0
+                END IF
+            END IF
+        END IF
+
+        IF spawnx < 10 THEN
+            spawnx = 10
+        END IF
+
+        spawned = spawned + 1
+        IF spawned < mech_units THEN
+            GOTO spawn_mech_loop
+        END IF
+        GOTO spawn_mech_end
+
+spawn_air:
+    LET spawned = 0
+    spawn_air_loop:
+        LET roll = rand(progression)
+        IF roll >= 3 THEN
+            IF roll >= 4 THEN
+                SPAWN(@disrupt, spawnx, spawny, 0, @crux, _)
+                spawnx = spawnx - 5.75
+            ELSE
+                SPAWN(@quell, spawnx, spawny, 0, @crux, _)
+                spawnx = spawnx - 4.5
+            END IF
+        ELSE
+            IF roll >= 2 THEN
+                SPAWN(@obviate, spawnx, spawny, 0, @crux, _)
+                spawnx = spawnx - 3.12
+            ELSE
+                IF roll >= 1 THEN
+                    SPAWN(@avert, spawnx, spawny, 0, @crux, _)
+                    spawnx = spawnx - 1
+                ELSE
+                    SPAWN(@elude, spawnx, spawny, 0, @crux, _)
+                    spawnx = spawnx - 1
+                END IF
+            END IF
+        END IF
+
+        IF spawnx < 10 THEN
+            spawnx = 10
+        END IF
+
+        spawned = spawned + 1
+        IF spawned < air_units THEN
+            GOTO spawn_air_loop
+        END IF
+        GOTO spawn_air_end
