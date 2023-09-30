@@ -64,7 +64,7 @@ impl MindustryOperation {
 }
 
 #[derive(Debug, Clone)]
-pub struct MindustryProgram(Vec<MindustryOperation>);
+pub struct MindustryProgram(pub Vec<MindustryOperation>);
 
 impl MindustryProgram {
     pub fn new() -> Self {
