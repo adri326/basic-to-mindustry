@@ -6,11 +6,10 @@ pub(crate) fn optimize_dead_code(program: MindustryProgram) -> MindustryProgram 
 
     let mut needed_vars = HashSet::new();
     let mut needed_labels = HashSet::new();
-    let mut push_var = |operand: &Operand| match operand {
-        Operand::Variable(name) => {
+    let mut push_var = |operand: &Operand| {
+        if let Operand::Variable(name) = operand {
             needed_vars.insert(name.clone());
         }
-        _ => {}
     };
 
     for instruction in program.0.iter() {
@@ -44,31 +43,32 @@ pub(crate) fn optimize_dead_code(program: MindustryProgram) -> MindustryProgram 
     }
 
     // Remove unneeded `set`s and `op`s
-    replace_if(program, |_instructions, instruction, _index| {
-        match instruction {
+    replace_if(
+        program,
+        |_instructions, instruction, _index| match instruction {
             MindustryOperation::Set(name, _) | MindustryOperation::Operator(name, _, _, _) => {
                 if !tmp_regex.is_match(name) {
-                    return None
+                    return None;
                 }
 
                 if needed_vars.contains(name) {
-                    return None
+                    return None;
                 }
 
-                return Some(vec![])
+                Some(vec![])
             }
             MindustryOperation::JumpLabel(label) => {
                 if !label_regex.is_match(label) {
-                    return None
+                    return None;
                 }
 
                 if needed_labels.contains(label) {
-                    return None
+                    return None;
                 }
 
-                return Some(vec![])
+                Some(vec![])
             }
-            _ => None
-        }
-    })
+            _ => None,
+        },
+    )
 }

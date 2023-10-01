@@ -10,11 +10,7 @@ pub fn optimize_constant(program: MindustryProgram) -> MindustryProgram {
             return true;
         }
 
-        if name.starts_with('@') {
-            false
-        } else {
-            true
-        }
+        !name.starts_with('@')
     };
 
     let res = replace_if(program, |instructions, instruction, use_index| {
@@ -67,12 +63,12 @@ pub fn optimize_constant(program: MindustryProgram) -> MindustryProgram {
             .filter(|(_name, value, set_index)| {
                 // Don't optimize operands that refer to a mutating variable (either mutable @-variables or instructions that get updated in-between)
                 if let Operand::Variable(assigned_var) = value {
-                    if !is_safe_variable(&assigned_var) {
+                    if !is_safe_variable(assigned_var) {
                         return false;
                     }
 
                     for instr_between in &instructions[*set_index..use_index] {
-                        if instr_between.mutates(&assigned_var) {
+                        if instr_between.mutates(assigned_var) {
                             return false;
                         }
                     }
@@ -85,8 +81,8 @@ pub fn optimize_constant(program: MindustryProgram) -> MindustryProgram {
             .map(|(name, value, _index)| (name, value))
             .collect::<Vec<_>>();
 
-        if optimizable_operands.len() == 0 {
-            return None
+        if optimizable_operands.is_empty() {
+            return None;
         }
 
         let mut instruction = instruction.clone();

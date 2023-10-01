@@ -86,10 +86,10 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
     // TODO: handle labels
 
     for mut line in raw.lines() {
-        if line.len() > 0 {
+        if !line.is_empty() {
             res.push(BasicToken::NewLine);
         }
-        while line.len() > 0 {
+        while !line.is_empty() {
             // Main match clause for tokens
             match_token!(line, res;
                 match_space => (),

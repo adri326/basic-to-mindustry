@@ -46,7 +46,7 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
     let mut context_stack: Vec<(Vec<BasicAstInstruction>, Context)> =
         vec![(Vec::new(), Context::Main)];
 
-    while tokens.len() > 0 {
+    while !tokens.is_empty() {
         let Some((ref mut instructions, _context)) = context_stack.last_mut() else {
             unreachable!("Context stack got emptied!");
         };
@@ -225,7 +225,7 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
         }
     }
 
-    if context_stack.len() == 0 {
+    if context_stack.is_empty() {
         unreachable!("Empty context stack");
     } else if context_stack.len() > 1 {
         match &context_stack.last().unwrap().1 {
@@ -277,7 +277,7 @@ pub(crate) fn parse_expression(
     tokens: &mut Cursor<'_, BasicToken>,
 ) -> Result<BasicAstExpression, ParseError> {
     /// Returns the first non-newline token in `tokens`
-    fn peek<'a>(tokens: &'a [BasicToken]) -> Option<&'a BasicToken> {
+    fn peek(tokens: &[BasicToken]) -> Option<&BasicToken> {
         tokens.iter().find(|t| !matches!(t, BasicToken::NewLine))
     }
 

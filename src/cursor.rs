@@ -103,6 +103,10 @@ impl<'a, T> Cursor<'a, T> {
         self.data.len().saturating_sub(self.offset)
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn range<R: std::slice::SliceIndex<[T], Output = [T]>>(&self, range: R) -> Self {
         Self {
             data: &self.data[self.offset..][range],

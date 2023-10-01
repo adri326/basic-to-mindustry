@@ -19,7 +19,7 @@ impl std::fmt::Display for Operand {
         match self {
             Operand::Variable(name) => write!(f, "{}", name),
             Operand::String(string) => {
-                let escaped = string.replace('\\', r#"\\"#).replace('"', r#"\""#);
+                let escaped = string.replace('\\', r"\\").replace('"', r#"\""#);
                 write!(f, "\"{}\"", escaped)
             }
             Operand::Integer(int) => write!(f, "{}", int),
@@ -50,7 +50,7 @@ pub enum MindustryOperation {
 }
 
 impl MindustryOperation {
-    fn operands<'a>(&'a self) -> Box<[&'a Operand]> {
+    fn operands(&self) -> Box<[&Operand]> {
         match self {
             Self::JumpIf(_label, _operator, lhs, rhs) => Box::new([lhs, rhs]),
             Self::Operator(_target, _operator, lhs, rhs) => Box::new([lhs, rhs]),
@@ -65,7 +65,7 @@ impl MindustryOperation {
         }
     }
 
-    fn operands_mut<'a>(&'a mut self) -> Vec<&'a mut Operand> {
+    fn operands_mut(&mut self) -> Vec<&mut Operand> {
         match self {
             Self::JumpIf(_label, _operator, lhs, rhs) => vec![lhs, rhs],
             Self::Operator(_target, _operator, lhs, rhs) => vec![lhs, rhs],
@@ -91,7 +91,7 @@ impl MindustryOperation {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct MindustryProgram(pub Vec<MindustryOperation>);
 
 impl MindustryProgram {
@@ -225,7 +225,7 @@ pub fn translate_ast(
                     condition_name.clone(),
                 ));
 
-                if false_branch.instructions.len() > 0 {
+                if !false_branch.instructions.is_empty() {
                     let else_label = namer.label("else");
                     let end_label = namer.label("endif");
                     res.push(MindustryOperation::JumpIf(
@@ -301,18 +301,12 @@ pub fn translate_ast(
                     res.push(MindustryOperation::GenericMut(
                         target_name.clone(),
                         out_name,
-                        argument_names
-                            .into_iter()
-                            .map(|name| Operand::Variable(name))
-                            .collect(),
+                        argument_names.into_iter().map(Operand::Variable).collect(),
                     ));
                 } else {
                     res.push(MindustryOperation::Generic(
                         target_name.clone(),
-                        argument_names
-                            .into_iter()
-                            .map(|name| Operand::Variable(name))
-                            .collect(),
+                        argument_names.into_iter().map(Operand::Variable).collect(),
                     ));
                 }
             }
@@ -403,7 +397,7 @@ impl std::fmt::Display for MindustryProgram {
                     for operand in operands {
                         write!(f, " {}", operand)?;
                     }
-                    write!(f, "\n")?;
+                    writeln!(f)?;
                 }
                 MindustryOperation::GenericMut(name, out_name, operands) => {
                     write!(f, "{}", name)?;
@@ -411,7 +405,7 @@ impl std::fmt::Display for MindustryProgram {
                     for operand in operands {
                         write!(f, " {}", operand)?;
                     }
-                    write!(f, "\n")?;
+                    writeln!(f)?;
                 }
             }
         }

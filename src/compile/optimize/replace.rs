@@ -1,9 +1,12 @@
 use super::*;
 
-
 pub(crate) fn replace_if<F>(program: MindustryProgram, callback: F) -> MindustryProgram
 where
-    F: for<'c> Fn(&'c Vec<MindustryOperation>, &'c MindustryOperation, usize) -> Option<Vec<MindustryOperation>>
+    F: for<'c> Fn(
+        &'c Vec<MindustryOperation>,
+        &'c MindustryOperation,
+        usize,
+    ) -> Option<Vec<MindustryOperation>>,
 {
     let mut res = MindustryProgram::new();
 
