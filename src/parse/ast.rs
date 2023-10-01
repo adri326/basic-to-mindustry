@@ -189,7 +189,15 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                 }
 
                 let lowercase_fn_name = fn_name.to_lowercase();
-                if let Some((_, n_args)) = config.builtin_functions.get(&lowercase_fn_name) {
+                if let Some((_, mutating, n_args)) =
+                    config.builtin_functions.get(&lowercase_fn_name)
+                {
+                    if *mutating {
+                        let BasicAstExpression::Variable(_) = &arguments[0] else {
+                            return Err(ParseError::ExpectedVariable);
+                        };
+                    }
+
                     if arguments.len() != *n_args {
                         return Err(ParseError::InvalidArgumentCount(
                             lowercase_fn_name,

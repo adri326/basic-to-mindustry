@@ -35,8 +35,18 @@ pub enum MindustryOperation {
     JumpIf(String, Operator, Operand, Operand),
     Operator(String, Operator, Operand, Operand),
     UnaryOperator(String, UnaryOperator, Operand),
+    // TODO: add RandOperator
     Set(String, Operand),
+    /// A generic operation, with the following invariants:
+    /// - all of the operands are read-only
+    /// - there is no external dependency to other variables
+    /// - no external variable is modified
     Generic(String, Vec<Operand>),
+    /// A generic, mutating operation `(name, out_name, operands)`, with the following invariants:
+    /// - all of the operands are read-only
+    /// - there is no external dependency to other variables, except `out_name`
+    /// - only `out_name` is modified
+    GenericMut(String, String, Vec<Operand>),
 }
 
 impl MindustryOperation {
@@ -46,6 +56,9 @@ impl MindustryOperation {
             Self::Operator(_target, _operator, lhs, rhs) => Box::new([lhs, rhs]),
             Self::Set(_target, value) => Box::new([value]),
             Self::Generic(_name, operands) => {
+                operands.iter().collect::<Vec<_>>().into_boxed_slice()
+            }
+            Self::GenericMut(_name, _out_name, operands) => {
                 operands.iter().collect::<Vec<_>>().into_boxed_slice()
             }
             _ => Box::new([]),
@@ -58,7 +71,22 @@ impl MindustryOperation {
             Self::Operator(_target, _operator, lhs, rhs) => vec![lhs, rhs],
             Self::Set(_target, value) => vec![value],
             Self::Generic(_name, operands) => operands.iter_mut().collect::<Vec<_>>(),
+            Self::GenericMut(_name, _out_name, operands) => operands.iter_mut().collect::<Vec<_>>(),
             _ => vec![],
+        }
+    }
+
+    fn mutates(&self, var_name: &str) -> bool {
+        match self {
+            MindustryOperation::JumpLabel(_)
+            | MindustryOperation::Jump(_)
+            | MindustryOperation::JumpIf(_, _, _, _)
+            | MindustryOperation::Generic(_, _) => false,
+
+            MindustryOperation::Operator(out_name, _, _, _)
+            | MindustryOperation::UnaryOperator(out_name, _, _)
+            | MindustryOperation::Set(out_name, _)
+            | MindustryOperation::GenericMut(_, out_name, _) => out_name == var_name,
         }
     }
 }
@@ -244,10 +272,17 @@ pub fn translate_ast(
                 }
             }
             Instr::CallBuiltin(name, arguments) => {
-                let argument_names = (0..arguments.len())
+                let Some((target_name, mutating, _)) = config.builtin_functions.get(name) else {
+                    unreachable!("CallBuilting constructed with unknown function name");
+                };
+                let mutating = *mutating;
+
+                let first_index = mutating as usize;
+
+                let argument_names = (first_index..arguments.len())
                     .map(|_| namer.temporary())
                     .collect::<Vec<_>>();
-                for (i, argument) in arguments.iter().enumerate() {
+                for (i, argument) in arguments.iter().skip(first_index).enumerate() {
                     res.append(&mut translate_expression(
                         argument,
                         namer,
@@ -255,7 +290,23 @@ pub fn translate_ast(
                     ));
                 }
 
-                if let Some((target_name, _)) = config.builtin_functions.get(name) {
+                if mutating {
+                    let BasicAstExpression::Variable(out_name) = arguments[0].clone() else {
+                        unreachable!(
+                            "First argument to {} isn't a variable, got {:?}",
+                            name, arguments[0]
+                        );
+                    };
+
+                    res.push(MindustryOperation::GenericMut(
+                        target_name.clone(),
+                        out_name,
+                        argument_names
+                            .into_iter()
+                            .map(|name| Operand::Variable(name))
+                            .collect(),
+                    ));
+                } else {
                     res.push(MindustryOperation::Generic(
                         target_name.clone(),
                         argument_names
@@ -349,6 +400,14 @@ impl std::fmt::Display for MindustryProgram {
                 }
                 MindustryOperation::Generic(name, operands) => {
                     write!(f, "{}", name)?;
+                    for operand in operands {
+                        write!(f, " {}", operand)?;
+                    }
+                    write!(f, "\n")?;
+                }
+                MindustryOperation::GenericMut(name, out_name, operands) => {
+                    write!(f, "{}", name)?;
+                    write!(f, " {}", out_name)?;
                     for operand in operands {
                         write!(f, " {}", operand)?;
                     }

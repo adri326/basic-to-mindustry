@@ -1,6 +1,6 @@
 use basic_to_mindustry::{
     common::Config,
-    compile::{optimize_jump_always, optimize_jump_op, optimize_set_use, translate_ast, Namer},
+    compile::{optimize_constant, optimize_jump_always, optimize_jump_op, translate_ast, Namer},
     parse::{build_ast, tokenize},
 };
 
@@ -13,9 +13,9 @@ fn main() {
     let parsed = build_ast(&tokens, &config).unwrap();
     let transformed = translate_ast(&parsed, &mut Namer::default(), &config);
 
-    // println!("{}", transformed);
+    println!("{}", transformed);
 
-    let optimized = optimize_set_use(transformed);
+    let optimized = optimize_constant(transformed);
     let optimized = optimize_jump_op(optimized);
     let optimized = optimize_jump_always(optimized);
 

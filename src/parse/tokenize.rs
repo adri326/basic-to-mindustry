@@ -1,3 +1,4 @@
+use super::ParseError;
 use crate::common::*;
 use regex::Regex;
 
@@ -20,15 +21,6 @@ pub enum BasicToken {
     Name(String),
     String(String),
     Operator(Operator),
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub enum ParseError {
-    InvalidToken(String),
-    UnexpectedToken(BasicToken),
-    MissingToken(BasicToken),
-    InvalidArgumentCount(String, usize, usize),
-    ExpectedOperand,
 }
 
 /// Transforms a raw string into a sequence of `BasicToken`s

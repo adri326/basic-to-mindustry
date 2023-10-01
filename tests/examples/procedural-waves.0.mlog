@@ -85,140 +85,139 @@ set main__tmp_43 wave
 set main__tmp_44 cell1
 set main__tmp_45 1
 write main__tmp_43 main__tmp_44 main__tmp_45
-set main__tmp_46 timeout
-set main__tmp_47 cell1
-set main__tmp_48 0
-read main__tmp_46 main__tmp_47 main__tmp_48
-set main__tmp_49 @time
-set main__tmp_51 timeout
-set main__tmp_52 1000
-op mul main__tmp_50 main__tmp_51 main__tmp_52
-op add timeout main__tmp_49 main__tmp_50
+set main__tmp_46 cell1
+set main__tmp_47 0
+read timeout main__tmp_46 main__tmp_47
+set main__tmp_48 @time
+set main__tmp_50 timeout
+set main__tmp_51 1000
+op mul main__tmp_49 main__tmp_50 main__tmp_51
+op add timeout main__tmp_48 main__tmp_49
 main_wait:
-set main__tmp_53 timeout
-set main__tmp_54 @time
-op sub remaining main__tmp_53 main__tmp_54
-set main__tmp_56 remaining
-set main__tmp_57 0
-op lessThanEq main__tmp_55 main__tmp_56 main__tmp_57
-jump main__label_1_endif notEqual main__tmp_55 true
+set main__tmp_52 timeout
+set main__tmp_53 @time
+op sub remaining main__tmp_52 main__tmp_53
+set main__tmp_55 remaining
+set main__tmp_56 0
+op lessThanEq main__tmp_54 main__tmp_55 main__tmp_56
+jump main__label_1_endif notEqual main__tmp_54 true
 jump main always 0 0
 main__label_1_endif:
-set main__tmp_58 "[yellow]Wave "
+set main__tmp_57 "[yellow]Wave "
+print main__tmp_57
+set main__tmp_58 wave
 print main__tmp_58
-set main__tmp_59 wave
+set main__tmp_59 "[white] - "
 print main__tmp_59
-set main__tmp_60 "[white] - "
+set main__tmp_60 "Next wave: "
 print main__tmp_60
-set main__tmp_61 "Next wave: "
+set main__tmp_62 remaining
+set main__tmp_63 1000
+op div main__tmp_61 main__tmp_62 main__tmp_63
+op ceil main__tmp_61 main__tmp_61 0
 print main__tmp_61
-set main__tmp_63 remaining
-set main__tmp_64 1000
-op div main__tmp_62 main__tmp_63 main__tmp_64
-op ceil main__tmp_62 main__tmp_62 0
-print main__tmp_62
-set main__tmp_65 " s"
-print main__tmp_65
+set main__tmp_64 " s"
+print main__tmp_64
 message mission
-set main__tmp_66 0.5
-wait main__tmp_66
+set main__tmp_65 0.5
+wait main__tmp_65
 jump main_wait always 0 0
 spawn_tank:
 set spawned 0
 spawn_tank_loop:
 set roll progression
 op rand roll roll 0
-set main__tmp_68 roll
-set main__tmp_69 3
-op greaterThanEq main__tmp_67 main__tmp_68 main__tmp_69
-jump main__label_2_else notEqual main__tmp_67 true
-set main__tmp_71 roll
-set main__tmp_72 4
-op greaterThanEq main__tmp_70 main__tmp_71 main__tmp_72
-jump main__label_4_else notEqual main__tmp_70 true
-set main__tmp_73 @conquer
-set main__tmp_74 spawnx
-set main__tmp_75 spawny
-set main__tmp_76 0
-set main__tmp_77 @crux
-set main__tmp_78 _
-spawn main__tmp_73 main__tmp_74 main__tmp_75 main__tmp_76 main__tmp_77 main__tmp_78
-set main__tmp_79 spawnx
-set main__tmp_80 5.75
-op sub spawnx main__tmp_79 main__tmp_80
+set main__tmp_67 roll
+set main__tmp_68 3
+op greaterThanEq main__tmp_66 main__tmp_67 main__tmp_68
+jump main__label_2_else notEqual main__tmp_66 true
+set main__tmp_70 roll
+set main__tmp_71 4
+op greaterThanEq main__tmp_69 main__tmp_70 main__tmp_71
+jump main__label_4_else notEqual main__tmp_69 true
+set main__tmp_72 @conquer
+set main__tmp_73 spawnx
+set main__tmp_74 spawny
+set main__tmp_75 0
+set main__tmp_76 @crux
+set main__tmp_77 _
+spawn main__tmp_72 main__tmp_73 main__tmp_74 main__tmp_75 main__tmp_76 main__tmp_77
+set main__tmp_78 spawnx
+set main__tmp_79 5.75
+op sub spawnx main__tmp_78 main__tmp_79
 jump main__label_5_endif always 0 0
 main__label_4_else:
-set main__tmp_81 @vanquish
-set main__tmp_82 spawnx
-set main__tmp_83 spawny
-set main__tmp_84 0
-set main__tmp_85 @crux
-set main__tmp_86 _
-spawn main__tmp_81 main__tmp_82 main__tmp_83 main__tmp_84 main__tmp_85 main__tmp_86
-set main__tmp_87 spawnx
-set main__tmp_88 3.5
-op sub spawnx main__tmp_87 main__tmp_88
+set main__tmp_80 @vanquish
+set main__tmp_81 spawnx
+set main__tmp_82 spawny
+set main__tmp_83 0
+set main__tmp_84 @crux
+set main__tmp_85 _
+spawn main__tmp_80 main__tmp_81 main__tmp_82 main__tmp_83 main__tmp_84 main__tmp_85
+set main__tmp_86 spawnx
+set main__tmp_87 3.5
+op sub spawnx main__tmp_86 main__tmp_87
 main__label_5_endif:
 jump main__label_3_endif always 0 0
 main__label_2_else:
-set main__tmp_90 roll
-set main__tmp_91 2
-op greaterThanEq main__tmp_89 main__tmp_90 main__tmp_91
-jump main__label_6_else notEqual main__tmp_89 true
-set main__tmp_92 @precept
-set main__tmp_93 spawnx
-set main__tmp_94 spawny
-set main__tmp_95 0
-set main__tmp_96 @crux
-set main__tmp_97 _
-spawn main__tmp_92 main__tmp_93 main__tmp_94 main__tmp_95 main__tmp_96 main__tmp_97
-set main__tmp_98 spawnx
-set main__tmp_99 3.25
-op sub spawnx main__tmp_98 main__tmp_99
+set main__tmp_89 roll
+set main__tmp_90 2
+op greaterThanEq main__tmp_88 main__tmp_89 main__tmp_90
+jump main__label_6_else notEqual main__tmp_88 true
+set main__tmp_91 @precept
+set main__tmp_92 spawnx
+set main__tmp_93 spawny
+set main__tmp_94 0
+set main__tmp_95 @crux
+set main__tmp_96 _
+spawn main__tmp_91 main__tmp_92 main__tmp_93 main__tmp_94 main__tmp_95 main__tmp_96
+set main__tmp_97 spawnx
+set main__tmp_98 3.25
+op sub spawnx main__tmp_97 main__tmp_98
 jump main__label_7_endif always 0 0
 main__label_6_else:
-set main__tmp_101 roll
-set main__tmp_102 1
-op greaterThanEq main__tmp_100 main__tmp_101 main__tmp_102
-jump main__label_8_else notEqual main__tmp_100 true
-set main__tmp_103 @locus
-set main__tmp_104 spawnx
-set main__tmp_105 spawny
-set main__tmp_106 0
-set main__tmp_107 @crux
-set main__tmp_108 _
-spawn main__tmp_103 main__tmp_104 main__tmp_105 main__tmp_106 main__tmp_107 main__tmp_108
-set main__tmp_109 spawnx
-set main__tmp_110 1
-op sub spawnx main__tmp_109 main__tmp_110
+set main__tmp_100 roll
+set main__tmp_101 1
+op greaterThanEq main__tmp_99 main__tmp_100 main__tmp_101
+jump main__label_8_else notEqual main__tmp_99 true
+set main__tmp_102 @locus
+set main__tmp_103 spawnx
+set main__tmp_104 spawny
+set main__tmp_105 0
+set main__tmp_106 @crux
+set main__tmp_107 _
+spawn main__tmp_102 main__tmp_103 main__tmp_104 main__tmp_105 main__tmp_106 main__tmp_107
+set main__tmp_108 spawnx
+set main__tmp_109 1
+op sub spawnx main__tmp_108 main__tmp_109
 jump main__label_9_endif always 0 0
 main__label_8_else:
-set main__tmp_111 @stell
-set main__tmp_112 spawnx
-set main__tmp_113 spawny
-set main__tmp_114 0
-set main__tmp_115 @crux
-set main__tmp_116 _
-spawn main__tmp_111 main__tmp_112 main__tmp_113 main__tmp_114 main__tmp_115 main__tmp_116
-set main__tmp_117 spawnx
-set main__tmp_118 1
-op sub spawnx main__tmp_117 main__tmp_118
+set main__tmp_110 @stell
+set main__tmp_111 spawnx
+set main__tmp_112 spawny
+set main__tmp_113 0
+set main__tmp_114 @crux
+set main__tmp_115 _
+spawn main__tmp_110 main__tmp_111 main__tmp_112 main__tmp_113 main__tmp_114 main__tmp_115
+set main__tmp_116 spawnx
+set main__tmp_117 1
+op sub spawnx main__tmp_116 main__tmp_117
 main__label_9_endif:
 main__label_7_endif:
 main__label_3_endif:
-set main__tmp_120 spawnx
-set main__tmp_121 10
-op lessThan main__tmp_119 main__tmp_120 main__tmp_121
-jump main__label_10_endif notEqual main__tmp_119 true
+set main__tmp_119 spawnx
+set main__tmp_120 10
+op lessThan main__tmp_118 main__tmp_119 main__tmp_120
+jump main__label_10_endif notEqual main__tmp_118 true
 set spawnx 10
 main__label_10_endif:
-set main__tmp_122 spawned
-set main__tmp_123 1
-op add spawned main__tmp_122 main__tmp_123
-set main__tmp_125 spawned
-set main__tmp_126 tank_units
-op lessThan main__tmp_124 main__tmp_125 main__tmp_126
-jump main__label_11_endif notEqual main__tmp_124 true
+set main__tmp_121 spawned
+set main__tmp_122 1
+op add spawned main__tmp_121 main__tmp_122
+set main__tmp_124 spawned
+set main__tmp_125 tank_units
+op lessThan main__tmp_123 main__tmp_124 main__tmp_125
+jump main__label_11_endif notEqual main__tmp_123 true
 jump spawn_tank_loop always 0 0
 main__label_11_endif:
 jump spawn_tank_end always 0 0
@@ -227,97 +226,97 @@ set spawned 0
 spawn_mech_loop:
 set roll progression
 op rand roll roll 0
-set main__tmp_128 roll
-set main__tmp_129 3
-op greaterThanEq main__tmp_127 main__tmp_128 main__tmp_129
-jump main__label_12_else notEqual main__tmp_127 true
-set main__tmp_131 roll
-set main__tmp_132 4
-op greaterThanEq main__tmp_130 main__tmp_131 main__tmp_132
-jump main__label_14_else notEqual main__tmp_130 true
-set main__tmp_133 @collaris
-set main__tmp_134 spawnx
-set main__tmp_135 spawny
-set main__tmp_136 0
-set main__tmp_137 @crux
-set main__tmp_138 _
-spawn main__tmp_133 main__tmp_134 main__tmp_135 main__tmp_136 main__tmp_137 main__tmp_138
-set main__tmp_139 spawnx
-set main__tmp_140 5.5
-op sub spawnx main__tmp_139 main__tmp_140
+set main__tmp_127 roll
+set main__tmp_128 3
+op greaterThanEq main__tmp_126 main__tmp_127 main__tmp_128
+jump main__label_12_else notEqual main__tmp_126 true
+set main__tmp_130 roll
+set main__tmp_131 4
+op greaterThanEq main__tmp_129 main__tmp_130 main__tmp_131
+jump main__label_14_else notEqual main__tmp_129 true
+set main__tmp_132 @collaris
+set main__tmp_133 spawnx
+set main__tmp_134 spawny
+set main__tmp_135 0
+set main__tmp_136 @crux
+set main__tmp_137 _
+spawn main__tmp_132 main__tmp_133 main__tmp_134 main__tmp_135 main__tmp_136 main__tmp_137
+set main__tmp_138 spawnx
+set main__tmp_139 5.5
+op sub spawnx main__tmp_138 main__tmp_139
 jump main__label_15_endif always 0 0
 main__label_14_else:
-set main__tmp_141 @tecta
-set main__tmp_142 spawnx
-set main__tmp_143 spawny
-set main__tmp_144 0
-set main__tmp_145 @crux
-set main__tmp_146 _
-spawn main__tmp_141 main__tmp_142 main__tmp_143 main__tmp_144 main__tmp_145 main__tmp_146
-set main__tmp_147 spawnx
-set main__tmp_148 2.87
-op sub spawnx main__tmp_147 main__tmp_148
+set main__tmp_140 @tecta
+set main__tmp_141 spawnx
+set main__tmp_142 spawny
+set main__tmp_143 0
+set main__tmp_144 @crux
+set main__tmp_145 _
+spawn main__tmp_140 main__tmp_141 main__tmp_142 main__tmp_143 main__tmp_144 main__tmp_145
+set main__tmp_146 spawnx
+set main__tmp_147 2.87
+op sub spawnx main__tmp_146 main__tmp_147
 main__label_15_endif:
 jump main__label_13_endif always 0 0
 main__label_12_else:
-set main__tmp_150 roll
-set main__tmp_151 2
-op greaterThanEq main__tmp_149 main__tmp_150 main__tmp_151
-jump main__label_16_else notEqual main__tmp_149 true
-set main__tmp_152 @anthicus
-set main__tmp_153 spawnx
-set main__tmp_154 spawny
-set main__tmp_155 0
-set main__tmp_156 @crux
-set main__tmp_157 _
-spawn main__tmp_152 main__tmp_153 main__tmp_154 main__tmp_155 main__tmp_156 main__tmp_157
-set main__tmp_158 spawnx
-set main__tmp_159 2.62
-op sub spawnx main__tmp_158 main__tmp_159
+set main__tmp_149 roll
+set main__tmp_150 2
+op greaterThanEq main__tmp_148 main__tmp_149 main__tmp_150
+jump main__label_16_else notEqual main__tmp_148 true
+set main__tmp_151 @anthicus
+set main__tmp_152 spawnx
+set main__tmp_153 spawny
+set main__tmp_154 0
+set main__tmp_155 @crux
+set main__tmp_156 _
+spawn main__tmp_151 main__tmp_152 main__tmp_153 main__tmp_154 main__tmp_155 main__tmp_156
+set main__tmp_157 spawnx
+set main__tmp_158 2.62
+op sub spawnx main__tmp_157 main__tmp_158
 jump main__label_17_endif always 0 0
 main__label_16_else:
-set main__tmp_161 roll
-set main__tmp_162 1
-op greaterThanEq main__tmp_160 main__tmp_161 main__tmp_162
-jump main__label_18_else notEqual main__tmp_160 true
-set main__tmp_163 @cleroi
-set main__tmp_164 spawnx
-set main__tmp_165 spawny
-set main__tmp_166 0
-set main__tmp_167 @crux
-set main__tmp_168 _
-spawn main__tmp_163 main__tmp_164 main__tmp_165 main__tmp_166 main__tmp_167 main__tmp_168
-set main__tmp_169 spawnx
-set main__tmp_170 1
-op sub spawnx main__tmp_169 main__tmp_170
+set main__tmp_160 roll
+set main__tmp_161 1
+op greaterThanEq main__tmp_159 main__tmp_160 main__tmp_161
+jump main__label_18_else notEqual main__tmp_159 true
+set main__tmp_162 @cleroi
+set main__tmp_163 spawnx
+set main__tmp_164 spawny
+set main__tmp_165 0
+set main__tmp_166 @crux
+set main__tmp_167 _
+spawn main__tmp_162 main__tmp_163 main__tmp_164 main__tmp_165 main__tmp_166 main__tmp_167
+set main__tmp_168 spawnx
+set main__tmp_169 1
+op sub spawnx main__tmp_168 main__tmp_169
 jump main__label_19_endif always 0 0
 main__label_18_else:
-set main__tmp_171 @merui
-set main__tmp_172 spawnx
-set main__tmp_173 spawny
-set main__tmp_174 0
-set main__tmp_175 @crux
-set main__tmp_176 _
-spawn main__tmp_171 main__tmp_172 main__tmp_173 main__tmp_174 main__tmp_175 main__tmp_176
-set main__tmp_177 spawnx
-set main__tmp_178 1
-op sub spawnx main__tmp_177 main__tmp_178
+set main__tmp_170 @merui
+set main__tmp_171 spawnx
+set main__tmp_172 spawny
+set main__tmp_173 0
+set main__tmp_174 @crux
+set main__tmp_175 _
+spawn main__tmp_170 main__tmp_171 main__tmp_172 main__tmp_173 main__tmp_174 main__tmp_175
+set main__tmp_176 spawnx
+set main__tmp_177 1
+op sub spawnx main__tmp_176 main__tmp_177
 main__label_19_endif:
 main__label_17_endif:
 main__label_13_endif:
-set main__tmp_180 spawnx
-set main__tmp_181 10
-op lessThan main__tmp_179 main__tmp_180 main__tmp_181
-jump main__label_20_endif notEqual main__tmp_179 true
+set main__tmp_179 spawnx
+set main__tmp_180 10
+op lessThan main__tmp_178 main__tmp_179 main__tmp_180
+jump main__label_20_endif notEqual main__tmp_178 true
 set spawnx 10
 main__label_20_endif:
-set main__tmp_182 spawned
-set main__tmp_183 1
-op add spawned main__tmp_182 main__tmp_183
-set main__tmp_185 spawned
-set main__tmp_186 mech_units
-op lessThan main__tmp_184 main__tmp_185 main__tmp_186
-jump main__label_21_endif notEqual main__tmp_184 true
+set main__tmp_181 spawned
+set main__tmp_182 1
+op add spawned main__tmp_181 main__tmp_182
+set main__tmp_184 spawned
+set main__tmp_185 mech_units
+op lessThan main__tmp_183 main__tmp_184 main__tmp_185
+jump main__label_21_endif notEqual main__tmp_183 true
 jump spawn_mech_loop always 0 0
 main__label_21_endif:
 jump spawn_mech_end always 0 0
@@ -326,97 +325,97 @@ set spawned 0
 spawn_air_loop:
 set roll progression
 op rand roll roll 0
-set main__tmp_188 roll
-set main__tmp_189 3
-op greaterThanEq main__tmp_187 main__tmp_188 main__tmp_189
-jump main__label_22_else notEqual main__tmp_187 true
-set main__tmp_191 roll
-set main__tmp_192 4
-op greaterThanEq main__tmp_190 main__tmp_191 main__tmp_192
-jump main__label_24_else notEqual main__tmp_190 true
-set main__tmp_193 @disrupt
-set main__tmp_194 spawnx
-set main__tmp_195 spawny
-set main__tmp_196 0
-set main__tmp_197 @crux
-set main__tmp_198 _
-spawn main__tmp_193 main__tmp_194 main__tmp_195 main__tmp_196 main__tmp_197 main__tmp_198
-set main__tmp_199 spawnx
-set main__tmp_200 5.75
-op sub spawnx main__tmp_199 main__tmp_200
+set main__tmp_187 roll
+set main__tmp_188 3
+op greaterThanEq main__tmp_186 main__tmp_187 main__tmp_188
+jump main__label_22_else notEqual main__tmp_186 true
+set main__tmp_190 roll
+set main__tmp_191 4
+op greaterThanEq main__tmp_189 main__tmp_190 main__tmp_191
+jump main__label_24_else notEqual main__tmp_189 true
+set main__tmp_192 @disrupt
+set main__tmp_193 spawnx
+set main__tmp_194 spawny
+set main__tmp_195 0
+set main__tmp_196 @crux
+set main__tmp_197 _
+spawn main__tmp_192 main__tmp_193 main__tmp_194 main__tmp_195 main__tmp_196 main__tmp_197
+set main__tmp_198 spawnx
+set main__tmp_199 5.75
+op sub spawnx main__tmp_198 main__tmp_199
 jump main__label_25_endif always 0 0
 main__label_24_else:
-set main__tmp_201 @quell
-set main__tmp_202 spawnx
-set main__tmp_203 spawny
-set main__tmp_204 0
-set main__tmp_205 @crux
-set main__tmp_206 _
-spawn main__tmp_201 main__tmp_202 main__tmp_203 main__tmp_204 main__tmp_205 main__tmp_206
-set main__tmp_207 spawnx
-set main__tmp_208 4.5
-op sub spawnx main__tmp_207 main__tmp_208
+set main__tmp_200 @quell
+set main__tmp_201 spawnx
+set main__tmp_202 spawny
+set main__tmp_203 0
+set main__tmp_204 @crux
+set main__tmp_205 _
+spawn main__tmp_200 main__tmp_201 main__tmp_202 main__tmp_203 main__tmp_204 main__tmp_205
+set main__tmp_206 spawnx
+set main__tmp_207 4.5
+op sub spawnx main__tmp_206 main__tmp_207
 main__label_25_endif:
 jump main__label_23_endif always 0 0
 main__label_22_else:
-set main__tmp_210 roll
-set main__tmp_211 2
-op greaterThanEq main__tmp_209 main__tmp_210 main__tmp_211
-jump main__label_26_else notEqual main__tmp_209 true
-set main__tmp_212 @obviate
-set main__tmp_213 spawnx
-set main__tmp_214 spawny
-set main__tmp_215 0
-set main__tmp_216 @crux
-set main__tmp_217 _
-spawn main__tmp_212 main__tmp_213 main__tmp_214 main__tmp_215 main__tmp_216 main__tmp_217
-set main__tmp_218 spawnx
-set main__tmp_219 3.12
-op sub spawnx main__tmp_218 main__tmp_219
+set main__tmp_209 roll
+set main__tmp_210 2
+op greaterThanEq main__tmp_208 main__tmp_209 main__tmp_210
+jump main__label_26_else notEqual main__tmp_208 true
+set main__tmp_211 @obviate
+set main__tmp_212 spawnx
+set main__tmp_213 spawny
+set main__tmp_214 0
+set main__tmp_215 @crux
+set main__tmp_216 _
+spawn main__tmp_211 main__tmp_212 main__tmp_213 main__tmp_214 main__tmp_215 main__tmp_216
+set main__tmp_217 spawnx
+set main__tmp_218 3.12
+op sub spawnx main__tmp_217 main__tmp_218
 jump main__label_27_endif always 0 0
 main__label_26_else:
-set main__tmp_221 roll
-set main__tmp_222 1
-op greaterThanEq main__tmp_220 main__tmp_221 main__tmp_222
-jump main__label_28_else notEqual main__tmp_220 true
-set main__tmp_223 @avert
-set main__tmp_224 spawnx
-set main__tmp_225 spawny
-set main__tmp_226 0
-set main__tmp_227 @crux
-set main__tmp_228 _
-spawn main__tmp_223 main__tmp_224 main__tmp_225 main__tmp_226 main__tmp_227 main__tmp_228
-set main__tmp_229 spawnx
-set main__tmp_230 1
-op sub spawnx main__tmp_229 main__tmp_230
+set main__tmp_220 roll
+set main__tmp_221 1
+op greaterThanEq main__tmp_219 main__tmp_220 main__tmp_221
+jump main__label_28_else notEqual main__tmp_219 true
+set main__tmp_222 @avert
+set main__tmp_223 spawnx
+set main__tmp_224 spawny
+set main__tmp_225 0
+set main__tmp_226 @crux
+set main__tmp_227 _
+spawn main__tmp_222 main__tmp_223 main__tmp_224 main__tmp_225 main__tmp_226 main__tmp_227
+set main__tmp_228 spawnx
+set main__tmp_229 1
+op sub spawnx main__tmp_228 main__tmp_229
 jump main__label_29_endif always 0 0
 main__label_28_else:
-set main__tmp_231 @elude
-set main__tmp_232 spawnx
-set main__tmp_233 spawny
-set main__tmp_234 0
-set main__tmp_235 @crux
-set main__tmp_236 _
-spawn main__tmp_231 main__tmp_232 main__tmp_233 main__tmp_234 main__tmp_235 main__tmp_236
-set main__tmp_237 spawnx
-set main__tmp_238 1
-op sub spawnx main__tmp_237 main__tmp_238
+set main__tmp_230 @elude
+set main__tmp_231 spawnx
+set main__tmp_232 spawny
+set main__tmp_233 0
+set main__tmp_234 @crux
+set main__tmp_235 _
+spawn main__tmp_230 main__tmp_231 main__tmp_232 main__tmp_233 main__tmp_234 main__tmp_235
+set main__tmp_236 spawnx
+set main__tmp_237 1
+op sub spawnx main__tmp_236 main__tmp_237
 main__label_29_endif:
 main__label_27_endif:
 main__label_23_endif:
-set main__tmp_240 spawnx
-set main__tmp_241 10
-op lessThan main__tmp_239 main__tmp_240 main__tmp_241
-jump main__label_30_endif notEqual main__tmp_239 true
+set main__tmp_239 spawnx
+set main__tmp_240 10
+op lessThan main__tmp_238 main__tmp_239 main__tmp_240
+jump main__label_30_endif notEqual main__tmp_238 true
 set spawnx 10
 main__label_30_endif:
-set main__tmp_242 spawned
-set main__tmp_243 1
-op add spawned main__tmp_242 main__tmp_243
-set main__tmp_245 spawned
-set main__tmp_246 air_units
-op lessThan main__tmp_244 main__tmp_245 main__tmp_246
-jump main__label_31_endif notEqual main__tmp_244 true
+set main__tmp_241 spawned
+set main__tmp_242 1
+op add spawned main__tmp_241 main__tmp_242
+set main__tmp_244 spawned
+set main__tmp_245 air_units
+op lessThan main__tmp_243 main__tmp_244 main__tmp_245
+jump main__label_31_endif notEqual main__tmp_243 true
 jump spawn_air_loop always 0 0
 main__label_31_endif:
 jump spawn_air_end always 0 0

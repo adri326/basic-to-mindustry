@@ -52,12 +52,12 @@ jump spawn_air always 0 0
 spawn_air_end:
 write wave cell1 1
 read timeout cell1 0
-set main__tmp_49 @time
-op mul main__tmp_50 timeout 1000
-op add timeout main__tmp_49 main__tmp_50
+set main__tmp_48 @time
+op mul main__tmp_49 timeout 1000
+op add timeout main__tmp_48 main__tmp_49
 main_wait:
-set main__tmp_54 @time
-op sub remaining timeout main__tmp_54
+set main__tmp_53 @time
+op sub remaining timeout main__tmp_53
 jump main__label_1_endif greaterThan remaining 0
 jump main always 0 0
 main__label_1_endif:
@@ -65,9 +65,9 @@ print "[yellow]Wave "
 print wave
 print "[white] - "
 print "Next wave: "
-op div main__tmp_62 remaining 1000
-op ceil main__tmp_62 main__tmp_62 0
-print main__tmp_62
+op div main__tmp_61 remaining 1000
+op ceil main__tmp_61 main__tmp_61 0
+print main__tmp_61
 print " s"
 message mission
 wait 0.5
@@ -79,30 +79,30 @@ set roll progression
 op rand roll roll 0
 jump main__label_2_else lessThan roll 3
 jump main__label_4_else lessThan roll 4
-set main__tmp_77 @crux
-spawn @conquer spawnx spawny 0 main__tmp_77 _
+set main__tmp_76 @crux
+spawn @conquer spawnx spawny 0 main__tmp_76 _
 op sub spawnx spawnx 5.75
 jump main__label_3_endif always 0 0
 main__label_4_else:
-set main__tmp_85 @crux
-spawn @vanquish spawnx spawny 0 main__tmp_85 _
+set main__tmp_84 @crux
+spawn @vanquish spawnx spawny 0 main__tmp_84 _
 op sub spawnx spawnx 3.5
 jump main__label_3_endif always 0 0
 main__label_2_else:
 jump main__label_6_else lessThan roll 2
-set main__tmp_96 @crux
-spawn @precept spawnx spawny 0 main__tmp_96 _
+set main__tmp_95 @crux
+spawn @precept spawnx spawny 0 main__tmp_95 _
 op sub spawnx spawnx 3.25
 jump main__label_7_endif always 0 0
 main__label_6_else:
 jump main__label_8_else lessThan roll 1
-set main__tmp_107 @crux
-spawn @locus spawnx spawny 0 main__tmp_107 _
+set main__tmp_106 @crux
+spawn @locus spawnx spawny 0 main__tmp_106 _
 op sub spawnx spawnx 1
 jump main__label_9_endif always 0 0
 main__label_8_else:
-set main__tmp_115 @crux
-spawn @stell spawnx spawny 0 main__tmp_115 _
+set main__tmp_114 @crux
+spawn @stell spawnx spawny 0 main__tmp_114 _
 op sub spawnx spawnx 1
 main__label_9_endif:
 main__label_7_endif:
@@ -121,30 +121,30 @@ set roll progression
 op rand roll roll 0
 jump main__label_12_else lessThan roll 3
 jump main__label_14_else lessThan roll 4
-set main__tmp_137 @crux
-spawn @collaris spawnx spawny 0 main__tmp_137 _
+set main__tmp_136 @crux
+spawn @collaris spawnx spawny 0 main__tmp_136 _
 op sub spawnx spawnx 5.5
 jump main__label_13_endif always 0 0
 main__label_14_else:
-set main__tmp_145 @crux
-spawn @tecta spawnx spawny 0 main__tmp_145 _
+set main__tmp_144 @crux
+spawn @tecta spawnx spawny 0 main__tmp_144 _
 op sub spawnx spawnx 2.87
 jump main__label_13_endif always 0 0
 main__label_12_else:
 jump main__label_16_else lessThan roll 2
-set main__tmp_156 @crux
-spawn @anthicus spawnx spawny 0 main__tmp_156 _
+set main__tmp_155 @crux
+spawn @anthicus spawnx spawny 0 main__tmp_155 _
 op sub spawnx spawnx 2.62
 jump main__label_17_endif always 0 0
 main__label_16_else:
 jump main__label_18_else lessThan roll 1
-set main__tmp_167 @crux
-spawn @cleroi spawnx spawny 0 main__tmp_167 _
+set main__tmp_166 @crux
+spawn @cleroi spawnx spawny 0 main__tmp_166 _
 op sub spawnx spawnx 1
 jump main__label_19_endif always 0 0
 main__label_18_else:
-set main__tmp_175 @crux
-spawn @merui spawnx spawny 0 main__tmp_175 _
+set main__tmp_174 @crux
+spawn @merui spawnx spawny 0 main__tmp_174 _
 op sub spawnx spawnx 1
 main__label_19_endif:
 main__label_17_endif:
@@ -163,30 +163,30 @@ set roll progression
 op rand roll roll 0
 jump main__label_22_else lessThan roll 3
 jump main__label_24_else lessThan roll 4
-set main__tmp_197 @crux
-spawn @disrupt spawnx spawny 0 main__tmp_197 _
+set main__tmp_196 @crux
+spawn @disrupt spawnx spawny 0 main__tmp_196 _
 op sub spawnx spawnx 5.75
 jump main__label_23_endif always 0 0
 main__label_24_else:
-set main__tmp_205 @crux
-spawn @quell spawnx spawny 0 main__tmp_205 _
+set main__tmp_204 @crux
+spawn @quell spawnx spawny 0 main__tmp_204 _
 op sub spawnx spawnx 4.5
 jump main__label_23_endif always 0 0
 main__label_22_else:
 jump main__label_26_else lessThan roll 2
-set main__tmp_216 @crux
-spawn @obviate spawnx spawny 0 main__tmp_216 _
+set main__tmp_215 @crux
+spawn @obviate spawnx spawny 0 main__tmp_215 _
 op sub spawnx spawnx 3.12
 jump main__label_27_endif always 0 0
 main__label_26_else:
 jump main__label_28_else lessThan roll 1
-set main__tmp_227 @crux
-spawn @avert spawnx spawny 0 main__tmp_227 _
+set main__tmp_226 @crux
+spawn @avert spawnx spawny 0 main__tmp_226 _
 op sub spawnx spawnx 1
 jump main__label_29_endif always 0 0
 main__label_28_else:
-set main__tmp_235 @crux
-spawn @elude spawnx spawny 0 main__tmp_235 _
+set main__tmp_234 @crux
+spawn @elude spawnx spawny 0 main__tmp_234 _
 op sub spawnx spawnx 1
 main__label_29_endif:
 main__label_27_endif:
