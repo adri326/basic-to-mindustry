@@ -1,0 +1,4 @@
+set X 0
+line__20:
+op add X X 1
+jump line__20 always 0 0

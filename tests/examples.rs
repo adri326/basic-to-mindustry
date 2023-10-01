@@ -1,14 +1,15 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use basic_to_mindustry::common::Config;
-use basic_to_mindustry::compile::{optimize_set_use, translate_ast};
+use basic_to_mindustry::compile::{optimize_set_use, translate_ast, optimize_jump_op, optimize_jump_always};
 use basic_to_mindustry::parse::{build_ast, tokenize};
 
-#[test]
-fn test_examples() {
-    let config = Config::default();
-    for entry in Path::new("./examples/").read_dir().unwrap() {
-        let Ok(entry) = entry else { continue };
+fn read_basic_examples() -> impl Iterator<Item=(String, String)> {
+    Path::new("./examples/").read_dir().unwrap().filter_map(|entry| {
+        let Ok(entry) = entry else {
+            return None;
+        };
+
         if entry
             .file_name()
             .into_string()
@@ -19,17 +20,61 @@ fn test_examples() {
             let file = std::fs::read_to_string(entry.path()).unwrap_or_else(|e| {
                 panic!("Error opening {:?}: {:?}", file_name, e);
             });
-
-            let tokenized = tokenize(&file).unwrap_or_else(|e| {
-                panic!("Error tokenizing {:?}: {:?}", file_name, e);
-            });
-            let parsed = build_ast(&tokenized, &config).unwrap_or_else(|e| {
-                panic!("Error parsing {:?}: {:?}", file_name, e);
-            });
-            let translated = translate_ast(&parsed, &mut Default::default(), &config);
-            let optimized = optimize_set_use(translated);
-
-            let _ = optimized;
+            Some((file_name, file))
+        } else {
+            None
         }
+    })
+}
+
+#[test]
+fn test_examples() {
+    let config = Config::default();
+
+    for (file_name, file) in read_basic_examples() {
+        let tokenized = tokenize(&file).unwrap_or_else(|e| {
+            panic!("Error tokenizing {:?}: {:?}", file_name, e);
+        });
+        let parsed = build_ast(&tokenized, &config).unwrap_or_else(|e| {
+            panic!("Error parsing {:?}: {:?}", file_name, e);
+        });
+        let translated = translate_ast(&parsed, &mut Default::default(), &config);
+        let optimized = optimize_set_use(translated);
+
+        let _ = optimized;
+    }
+}
+
+// TODO: implement proper equality of `MindustryProgram`s and parse the expected results instead
+#[test]
+fn test_examples_opt() {
+    let config = Config::default();
+
+    for (file_name, file) in read_basic_examples() {
+        let Some(program_name) = PathBuf::from(file_name.clone()).file_stem().and_then(|stem| stem.to_str()).map(|s| s.to_string()) else {
+            panic!("Basic program in examples/ has an invalid filename: {}", file_name);
+        };
+
+        let tokenized = tokenize(&file).unwrap_or_else(|e| {
+            panic!("Error tokenizing {:?}: {:?}", file_name, e);
+        });
+        let parsed = build_ast(&tokenized, &config).unwrap_or_else(|e| {
+            panic!("Error parsing {:?}: {:?}", file_name, e);
+        });
+        let translated = translate_ast(&parsed, &mut Default::default(), &config);
+
+        let opt_0 = std::fs::read_to_string(format!("tests/examples/{}.0.mlog", program_name)).unwrap_or_else(|e| {
+            panic!("Couldn't open tests/examples/{}.0.mlog: {:?}", program_name, e);
+        });
+
+        assert_eq!(opt_0.trim(), format!("{}", translated).trim());
+
+        let optimized = optimize_jump_always(optimize_jump_op(optimize_set_use(translated)));
+
+        let opt_1 = std::fs::read_to_string(format!("tests/examples/{}.1.mlog", program_name)).unwrap_or_else(|e| {
+            panic!("Couldn't open tests/examples/{}.1.mlog: {:?}", program_name, e);
+        });
+
+        assert_eq!(opt_1.trim(), format!("{}", optimized).trim());
     }
 }

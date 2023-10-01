@@ -1,0 +1,6 @@
+set X 0
+line__20:
+set main__tmp_0 X
+set main__tmp_1 1
+op add X main__tmp_0 main__tmp_1
+jump line__20 always 0 0

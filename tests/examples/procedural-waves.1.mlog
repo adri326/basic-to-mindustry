@@ -1,0 +1,200 @@
+set wave 0
+set main__tmp_0 @time
+op add timeout main__tmp_0 120000
+initial_wait:
+set main__tmp_3 @time
+op sub remaining timeout main__tmp_3
+jump main__label_0_endif greaterThan remaining 0
+jump main always 0 0
+main__label_0_endif:
+print "[red]Enemies[white] approaching: "
+op div main__tmp_8 remaining 1000
+op ceil main__tmp_8 main__tmp_8 0
+print main__tmp_8
+print " s"
+message mission
+wait 0.5
+jump initial_wait always 0 0
+main:
+op add wave wave 1
+op div main__tmp_15 wave 4
+op pow progression main__tmp_15 0.75
+op div main__tmp_21 progression 2
+op div main__tmp_22 progression 2
+op rand main__tmp_22 main__tmp_22 0
+op add main__tmp_19 main__tmp_21 main__tmp_22
+op min progression main__tmp_19 10
+set main__tmp_31 progression
+op sqrt main__tmp_31 main__tmp_31 0
+op mul main__tmp_30 progression 4
+op add main__tmp_27 2 main__tmp_30
+op mul main__tmp_28 progression 2
+op rand main__tmp_28 main__tmp_28 0
+op add units main__tmp_27 main__tmp_28
+op mul units units 1
+op ceil units units 0
+set tank_units units
+op rand tank_units tank_units 0
+op floor tank_units tank_units 0
+op sub mech_units units tank_units
+op rand mech_units mech_units 0
+op floor mech_units mech_units 0
+op sub main__tmp_39 units tank_units
+op sub air_units main__tmp_39 mech_units
+set spawnx 30
+set spawny 50
+jump spawn_tank always 0 0
+spawn_tank_end:
+jump spawn_mech always 0 0
+spawn_mech_end:
+set spawnx 20
+jump spawn_air always 0 0
+spawn_air_end:
+write wave cell1 1
+read timeout cell1 0
+set main__tmp_49 @time
+op mul main__tmp_50 timeout 1000
+op add timeout main__tmp_49 main__tmp_50
+main_wait:
+set main__tmp_54 @time
+op sub remaining timeout main__tmp_54
+jump main__label_1_endif greaterThan remaining 0
+jump main always 0 0
+main__label_1_endif:
+print "[yellow]Wave "
+print wave
+print "[white] - "
+print "Next wave: "
+op div main__tmp_62 remaining 1000
+op ceil main__tmp_62 main__tmp_62 0
+print main__tmp_62
+print " s"
+message mission
+wait 0.5
+jump main_wait always 0 0
+spawn_tank:
+set spawned 0
+spawn_tank_loop:
+set roll progression
+op rand roll roll 0
+jump main__label_2_else lessThan roll 3
+jump main__label_4_else lessThan roll 4
+set main__tmp_77 @crux
+spawn @conquer spawnx spawny 0 main__tmp_77 _
+op sub spawnx spawnx 5.75
+jump main__label_3_endif always 0 0
+main__label_4_else:
+set main__tmp_85 @crux
+spawn @vanquish spawnx spawny 0 main__tmp_85 _
+op sub spawnx spawnx 3.5
+jump main__label_3_endif always 0 0
+main__label_2_else:
+jump main__label_6_else lessThan roll 2
+set main__tmp_96 @crux
+spawn @precept spawnx spawny 0 main__tmp_96 _
+op sub spawnx spawnx 3.25
+jump main__label_7_endif always 0 0
+main__label_6_else:
+jump main__label_8_else lessThan roll 1
+set main__tmp_107 @crux
+spawn @locus spawnx spawny 0 main__tmp_107 _
+op sub spawnx spawnx 1
+jump main__label_9_endif always 0 0
+main__label_8_else:
+set main__tmp_115 @crux
+spawn @stell spawnx spawny 0 main__tmp_115 _
+op sub spawnx spawnx 1
+main__label_9_endif:
+main__label_7_endif:
+main__label_3_endif:
+jump main__label_10_endif greaterThanEqual spawnx 10
+set spawnx 10
+main__label_10_endif:
+op add spawned spawned 1
+jump spawn_tank_end greaterThanEqual spawned tank_units
+jump spawn_tank_loop always 0 0
+jump spawn_mech always 0 0
+spawn_mech:
+set spawned 0
+spawn_mech_loop:
+set roll progression
+op rand roll roll 0
+jump main__label_12_else lessThan roll 3
+jump main__label_14_else lessThan roll 4
+set main__tmp_137 @crux
+spawn @collaris spawnx spawny 0 main__tmp_137 _
+op sub spawnx spawnx 5.5
+jump main__label_13_endif always 0 0
+main__label_14_else:
+set main__tmp_145 @crux
+spawn @tecta spawnx spawny 0 main__tmp_145 _
+op sub spawnx spawnx 2.87
+jump main__label_13_endif always 0 0
+main__label_12_else:
+jump main__label_16_else lessThan roll 2
+set main__tmp_156 @crux
+spawn @anthicus spawnx spawny 0 main__tmp_156 _
+op sub spawnx spawnx 2.62
+jump main__label_17_endif always 0 0
+main__label_16_else:
+jump main__label_18_else lessThan roll 1
+set main__tmp_167 @crux
+spawn @cleroi spawnx spawny 0 main__tmp_167 _
+op sub spawnx spawnx 1
+jump main__label_19_endif always 0 0
+main__label_18_else:
+set main__tmp_175 @crux
+spawn @merui spawnx spawny 0 main__tmp_175 _
+op sub spawnx spawnx 1
+main__label_19_endif:
+main__label_17_endif:
+main__label_13_endif:
+jump main__label_20_endif greaterThanEqual spawnx 10
+set spawnx 10
+main__label_20_endif:
+op add spawned spawned 1
+jump spawn_mech_end greaterThanEqual spawned mech_units
+jump spawn_mech_loop always 0 0
+jump spawn_mech_end always 0 0
+spawn_air:
+set spawned 0
+spawn_air_loop:
+set roll progression
+op rand roll roll 0
+jump main__label_22_else lessThan roll 3
+jump main__label_24_else lessThan roll 4
+set main__tmp_197 @crux
+spawn @disrupt spawnx spawny 0 main__tmp_197 _
+op sub spawnx spawnx 5.75
+jump main__label_23_endif always 0 0
+main__label_24_else:
+set main__tmp_205 @crux
+spawn @quell spawnx spawny 0 main__tmp_205 _
+op sub spawnx spawnx 4.5
+jump main__label_23_endif always 0 0
+main__label_22_else:
+jump main__label_26_else lessThan roll 2
+set main__tmp_216 @crux
+spawn @obviate spawnx spawny 0 main__tmp_216 _
+op sub spawnx spawnx 3.12
+jump main__label_27_endif always 0 0
+main__label_26_else:
+jump main__label_28_else lessThan roll 1
+set main__tmp_227 @crux
+spawn @avert spawnx spawny 0 main__tmp_227 _
+op sub spawnx spawnx 1
+jump main__label_29_endif always 0 0
+main__label_28_else:
+set main__tmp_235 @crux
+spawn @elude spawnx spawny 0 main__tmp_235 _
+op sub spawnx spawnx 1
+main__label_29_endif:
+main__label_27_endif:
+main__label_23_endif:
+jump main__label_30_endif greaterThanEqual spawnx 10
+set spawnx 10
+main__label_30_endif:
+op add spawned spawned 1
+jump spawn_air_end greaterThanEqual spawned air_units
+jump spawn_air_loop always 0 0
+jump spawn_air_end always 0 0

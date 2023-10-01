@@ -1,0 +1,23 @@
+set x 0
+start:
+op add x x 1
+op mod main__tmp_3 x 3
+jump main__label_0_else notEqual main__tmp_3 0
+op mod main__tmp_8 x 5
+jump main__label_2_else notEqual main__tmp_8 0
+print "fizzbuzz"
+jump main__label_1_endif always 0 0
+main__label_2_else:
+print "fizz"
+jump main__label_1_endif always 0 0
+main__label_0_else:
+op mod main__tmp_15 x 5
+jump main__label_4_else notEqual main__tmp_15 0
+print "buzz"
+jump main__label_5_endif always 0 0
+main__label_4_else:
+print x
+main__label_5_endif:
+main__label_1_endif:
+printflush message1
+jump start always 0 0
