@@ -1,4 +1,8 @@
+use regex::Regex;
+use std::collections::HashSet;
+
 use super::*;
+use crate::prelude::*;
 
 pub(crate) fn optimize_dead_code(program: MindustryProgram) -> MindustryProgram {
     let tmp_regex = Regex::new(r"__tmp_[0-9]+$").unwrap();

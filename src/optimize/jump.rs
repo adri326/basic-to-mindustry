@@ -1,4 +1,7 @@
+use regex::Regex;
+
 use super::*;
+use crate::prelude::*;
 
 /// Tries to merge the condition in an `op` into the `jump` itself
 pub fn optimize_jump_op(program: MindustryProgram) -> MindustryProgram {

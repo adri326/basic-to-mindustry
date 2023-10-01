@@ -1,6 +1,5 @@
 //! Lookaround helpers for quickly implementing optimizations
-
-use super::*;
+use crate::prelude::*;
 
 pub(crate) enum Lookaround<T> {
     Stop(T),

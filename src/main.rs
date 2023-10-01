@@ -1,7 +1,8 @@
 use basic_to_mindustry::{
-    common::Config,
-    compile::{optimize_constant, optimize_jump_always, optimize_jump_op, translate_ast, Namer},
+    optimize::{optimize_constant, optimize_jump_always, optimize_jump_op},
     parse::{build_ast, tokenize},
+    prelude::*,
+    translate::{translate_ast, Namer},
 };
 
 fn main() {

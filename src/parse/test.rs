@@ -1,7 +1,5 @@
-use crate::common::*;
-use crate::cursor::Cursor;
-
 use super::*;
+use crate::prelude::*;
 
 #[test]
 fn test_tokenize_basic() {

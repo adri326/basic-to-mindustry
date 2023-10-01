@@ -1,4 +1,4 @@
-use super::*;
+use crate::prelude::*;
 
 pub(crate) fn replace_if<F>(program: MindustryProgram, callback: F) -> MindustryProgram
 where

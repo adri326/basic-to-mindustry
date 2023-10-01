@@ -2,11 +2,10 @@
 
 use std::path::{Path, PathBuf};
 
-use basic_to_mindustry::common::Config;
-use basic_to_mindustry::compile::{
-    optimize_constant, optimize_jump_always, optimize_jump_op, translate_ast,
-};
+use basic_to_mindustry::optimize::{optimize_constant, optimize_jump_always, optimize_jump_op};
 use basic_to_mindustry::parse::{build_ast, tokenize};
+use basic_to_mindustry::prelude::*;
+use basic_to_mindustry::translate::translate_ast;
 
 fn read_basic_examples() -> impl Iterator<Item = (String, String)> {
     Path::new("./examples/")

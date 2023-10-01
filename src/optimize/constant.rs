@@ -1,4 +1,7 @@
+use regex::Regex;
+
 use super::*;
+use crate::prelude::*;
 
 /// Optimizes away unnecessary `sets`
 pub fn optimize_constant(program: MindustryProgram) -> MindustryProgram {
