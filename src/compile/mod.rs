@@ -54,6 +54,7 @@ impl MindustryOperation {
         match self {
             Self::JumpIf(_label, _operator, lhs, rhs) => Box::new([lhs, rhs]),
             Self::Operator(_target, _operator, lhs, rhs) => Box::new([lhs, rhs]),
+            Self::UnaryOperator(_target, _operator, value) => Box::new([value]),
             Self::Set(_target, value) => Box::new([value]),
             Self::Generic(_name, operands) => {
                 operands.iter().collect::<Vec<_>>().into_boxed_slice()
@@ -69,6 +70,7 @@ impl MindustryOperation {
         match self {
             Self::JumpIf(_label, _operator, lhs, rhs) => vec![lhs, rhs],
             Self::Operator(_target, _operator, lhs, rhs) => vec![lhs, rhs],
+            Self::UnaryOperator(_target, _operator, value) => vec![value],
             Self::Set(_target, value) => vec![value],
             Self::Generic(_name, operands) => operands.iter_mut().collect::<Vec<_>>(),
             Self::GenericMut(_name, _out_name, operands) => operands.iter_mut().collect::<Vec<_>>(),
@@ -184,12 +186,13 @@ fn translate_expression(
             res
         }
         BasicAstExpression::Unary(op, value) => {
-            let mut res = translate_expression(value.as_ref(), namer, target_name.clone());
+            let tmp_name = namer.temporary();
+            let mut res = translate_expression(value.as_ref(), namer, tmp_name.clone());
 
             res.push(MindustryOperation::UnaryOperator(
                 target_name.clone(),
                 *op,
-                Operand::Variable(target_name),
+                Operand::Variable(tmp_name),
             ));
 
             res
@@ -256,6 +259,40 @@ pub fn translate_ast(
 
                     res.push(MindustryOperation::JumpLabel(end_label));
                 }
+            }
+            Instr::For {
+                variable,
+                start,
+                end,
+                step,
+                instructions,
+            } => {
+                let start_label = namer.label("start");
+                let end_name = namer.temporary();
+                let step_name = namer.temporary();
+
+                // Initialization: evaluate `start`, `end` and `step`
+                res.append(&mut translate_expression(start, namer, variable.clone()));
+                res.append(&mut translate_expression(end, namer, end_name.clone()));
+                res.append(&mut translate_expression(step, namer, step_name.clone()));
+
+                // Body
+                res.push(MindustryOperation::JumpLabel(start_label.clone()));
+                res.append(&mut translate_ast(instructions, namer, config));
+
+                // Loop condition: increment variable and jump
+                res.push(MindustryOperation::Operator(
+                    variable.clone(),
+                    Operator::Add,
+                    Operand::Variable(variable.clone()),
+                    Operand::Variable(step_name),
+                ));
+                res.push(MindustryOperation::JumpIf(
+                    start_label,
+                    Operator::Lte,
+                    Operand::Variable(variable.clone()),
+                    Operand::Variable(end_name),
+                ));
             }
             Instr::Print(expressions) => {
                 for expression in expressions {

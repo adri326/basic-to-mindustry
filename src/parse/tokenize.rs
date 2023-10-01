@@ -11,6 +11,10 @@ pub enum BasicToken {
     Else,
     EndIf,
     Goto,
+    For,
+    To,
+    Step,
+    Next,
     LabelEnd,
     OpenParen,
     CloseParen,
@@ -70,7 +74,8 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
     let mut res = Vec::new();
     let match_let = Regex::new(r"(?i)^let").unwrap();
     let match_jump = Regex::new(r"(?i)^go\s*to").unwrap();
-    let match_word = Regex::new(r"(?i)^(?:if|then|else|end\s?if|print)(?:\s|$)").unwrap();
+    let match_word =
+        Regex::new(r"(?i)^(?:if|then|else|end\s?if|print|for|to|step|next)(?:\s|$)").unwrap();
     let match_space = Regex::new(r"^\s+").unwrap();
     let match_variable = Regex::new(r"^@?[a-zA-Z_][a-zA-Z_0-9]*").unwrap();
     let match_float = Regex::new(r"^[0-9]*\.[0-9]+").unwrap();
@@ -102,6 +107,10 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
                     "else" => BasicToken::Else,
                     "end if" | "endif" => BasicToken::EndIf,
                     "print" => BasicToken::Print,
+                    "for" => BasicToken::For,
+                    "to" => BasicToken::To,
+                    "step" => BasicToken::Step,
+                    "next" => BasicToken::Next,
                     _ => unreachable!("{}", word),
                 }),
                 match_variable(name) => (BasicToken::Name(name.to_string())),

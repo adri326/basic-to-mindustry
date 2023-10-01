@@ -21,16 +21,14 @@ pub fn optimize_constant(program: MindustryProgram) -> MindustryProgram {
                 Operand::Variable(name) if tmp_regex.is_match(name) => Some(name),
                 _ => None,
             })
-            // PERF: check when it would be better to deduplicate operands
-            // .collect::<HashSet<_>>()
-            // .into_iter()
             .filter_map(|name| {
                 lookbehind(instructions, use_index, |instr| {
                     match instr {
                         MindustryOperation::Set(set_name, value) if set_name == name => {
                             Lookaround::Stop((name.clone(), value.clone()))
                         }
-                        MindustryOperation::Operator(op_name, _op, _lhs, _rhs)
+                        MindustryOperation::Operator(op_name, _, _, _)
+                        | MindustryOperation::UnaryOperator(op_name, _, _)
                             if op_name == name =>
                         {
                             Lookaround::Abort
@@ -55,7 +53,13 @@ pub fn optimize_constant(program: MindustryProgram) -> MindustryProgram {
                             // but this usecase isn't needed yet.
                             Lookaround::Abort
                         }
-                        _ => Lookaround::Continue,
+                        other => {
+                            if other.mutates(name) {
+                                Lookaround::Abort
+                            } else {
+                                Lookaround::Continue
+                            }
+                        }
                     }
                 })
                 .map(|(index, (name, value))| (name, value, index))

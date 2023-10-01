@@ -15,4 +15,5 @@ pub enum ParseError {
     InvalidArgumentCount(String, usize, usize),
     ExpectedVariable,
     ExpectedOperand,
+    WrongForVariable(String, String),
 }

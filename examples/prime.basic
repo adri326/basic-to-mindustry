@@ -1,0 +1,15 @@
+READ(input, cell1, 0)
+
+IF input % 2 == 0 THEN
+    prime = false
+ELSE
+    FOR k = 3 TO SQRT(input) STEP 2
+        IF input % k == 0 THEN
+            prime = false
+            GOTO exit
+        END IF
+    NEXT k
+    prime = true
+END IF
+exit:
+    WRITE(prime, cell1, 1)

@@ -61,8 +61,7 @@ main:
         GOTO main_wait
 
 spawn_tank:
-    LET spawned = 0
-    spawn_tank_loop:
+    FOR spawned = 1 TO tank_units
         LET roll = rand(progression)
         IF roll >= 3 THEN
             IF roll >= 4 THEN
@@ -92,15 +91,11 @@ spawn_tank:
             spawnx = 10
         END IF
 
-        spawned = spawned + 1
-        IF spawned < tank_units THEN
-            GOTO spawn_tank_loop
-        END IF
-        GOTO spawn_tank_end
+    NEXT spawned
+    GOTO spawn_tank_end
 
 spawn_mech:
-    LET spawned = 0
-    spawn_mech_loop:
+    FOR spawned = 1 TO mech_units
         LET roll = rand(progression)
         IF roll >= 3 THEN
             IF roll >= 4 THEN
@@ -129,15 +124,11 @@ spawn_mech:
             spawnx = 10
         END IF
 
-        spawned = spawned + 1
-        IF spawned < mech_units THEN
-            GOTO spawn_mech_loop
-        END IF
-        GOTO spawn_mech_end
+    NEXT spawned
+    GOTO spawn_mech_end
 
 spawn_air:
-    LET spawned = 0
-    spawn_air_loop:
+    FOR spawned = 1 TO air_units
         LET roll = rand(progression)
         IF roll >= 3 THEN
             IF roll >= 4 THEN
@@ -166,8 +157,5 @@ spawn_air:
             spawnx = 10
         END IF
 
-        spawned = spawned + 1
-        IF spawned < air_units THEN
-            GOTO spawn_air_loop
-        END IF
-        GOTO spawn_air_end
+    NEXT spawned
+    GOTO spawn_air_end

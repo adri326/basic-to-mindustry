@@ -20,6 +20,13 @@ pub enum BasicAstInstruction {
     IfThenElse(BasicAstExpression, BasicAstBlock, BasicAstBlock),
     Print(Vec<(BasicAstExpression, bool)>),
     CallBuiltin(String, Vec<BasicAstExpression>),
+    For {
+        variable: String,
+        start: BasicAstExpression,
+        end: BasicAstExpression,
+        step: BasicAstExpression,
+        instructions: BasicAstBlock,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -34,12 +41,17 @@ impl BasicAstBlock {
         }
     }
 }
-
 pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock, ParseError> {
     enum Context {
         Main,
         If(BasicAstExpression),
         IfElse(BasicAstExpression, BasicAstBlock),
+        For(
+            String,
+            BasicAstExpression,
+            BasicAstExpression,
+            BasicAstExpression,
+        ),
     }
 
     let mut tokens = Cursor::from(tokens);
@@ -63,14 +75,7 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
             [BasicToken::NewLine, ..] => {
                 tokens.take(1);
             }
-            [BasicToken::Name(variable_name), BasicToken::Assign, ..] => {
-                tokens.take(2);
-                let expression = parse_expression(&mut tokens)?;
-                instructions.push(BasicAstInstruction::Assign(
-                    variable_name.clone(),
-                    expression,
-                ));
-            }
+            // == If-then-else ==
             [BasicToken::If, ..] => {
                 tokens.take(1);
                 let then_index = find_token_index(&tokens, BasicToken::Then)?;
@@ -129,6 +134,62 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                     }
                 }
             }
+            // == For loops ==
+            [BasicToken::For, BasicToken::Name(variable), BasicToken::Assign, ..] => {
+                tokens.take(3);
+
+                let start = parse_expression(&mut tokens)?;
+
+                expect_next_token(&mut tokens, &BasicToken::To)?;
+                tokens.take(1);
+
+                let end = parse_expression(&mut tokens)?;
+
+                let step = if let Some(BasicToken::Step) = tokens.get(0) {
+                    tokens.take(1);
+
+                    parse_expression(&mut tokens)?
+                } else {
+                    BasicAstExpression::Integer(1)
+                };
+
+                expect_next_token(&mut tokens, &BasicToken::NewLine)?;
+
+                context_stack.push((Vec::new(), Context::For(variable.clone(), start, end, step)));
+            }
+            [BasicToken::Next, BasicToken::Name(variable), ..] => match context_stack.pop() {
+                Some((instructions, Context::For(expected_variable, start, end, step))) => {
+                    tokens.take(2);
+
+                    let Some((ref mut parent_instructions, _)) = context_stack.last_mut() else {
+                        unreachable!("Context::For not wrapped in another context");
+                    };
+
+                    if *variable != expected_variable {
+                        return Err(ParseError::WrongForVariable(
+                            expected_variable,
+                            variable.clone(),
+                        ));
+                    }
+
+                    parent_instructions.push(BasicAstInstruction::For {
+                        variable: expected_variable,
+                        start,
+                        end,
+                        step,
+                        instructions: BasicAstBlock::new(instructions),
+                    });
+                }
+                Some((_instructions, _context)) => {
+                    eprintln!("NEXT outside of loop");
+                    return Err(ParseError::UnexpectedToken(BasicToken::Next));
+                }
+                None => {
+                    unreachable!("Empty context stack");
+                }
+            },
+
+            // == Goto ==
             [BasicToken::Goto, BasicToken::Integer(label), ..] => {
                 tokens.take(2);
                 instructions.push(BasicAstInstruction::Jump(label.to_string()));
@@ -136,6 +197,15 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
             [BasicToken::Goto, BasicToken::Name(label), ..] => {
                 tokens.take(2);
                 instructions.push(BasicAstInstruction::Jump(label.clone()));
+            }
+            // == Misc ==
+            [BasicToken::Name(variable_name), BasicToken::Assign, ..] => {
+                tokens.take(2);
+                let expression = parse_expression(&mut tokens)?;
+                instructions.push(BasicAstInstruction::Assign(
+                    variable_name.clone(),
+                    expression,
+                ));
             }
             [BasicToken::Print, ..] => {
                 tokens.take(1);
@@ -232,6 +302,9 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
             Context::If(_) | Context::IfElse(_, _) => {
                 return Err(ParseError::MissingToken(BasicToken::EndIf));
             }
+            Context::For(_, _, _, _) => {
+                return Err(ParseError::MissingToken(BasicToken::Next));
+            }
             Context::Main => {
                 unreachable!("There cannot be another context below the main context");
             }
@@ -310,15 +383,8 @@ pub(crate) fn parse_expression(
                     }
                 }
 
-                match tokens.take(1) {
-                    [BasicToken::CloseParen] => {}
-                    [other] => {
-                        return Err(ParseError::UnexpectedToken(other.clone()));
-                    }
-                    _ => {
-                        return Err(ParseError::MissingToken(BasicToken::CloseParen));
-                    }
-                }
+                expect_next_token(tokens, &BasicToken::CloseParen)?;
+                tokens.take(1);
 
                 if let Ok(unary_operator) = UnaryOperator::try_from(fn_name_lowercase.as_str()) {
                     if arguments.len() != 1 {
@@ -414,4 +480,15 @@ pub(crate) fn parse_expression(
     let res = parse_expression_main(tokens, lhs, 0)?;
 
     Ok(res)
+}
+
+fn expect_next_token(
+    tokens: &Cursor<'_, BasicToken>,
+    expected: &BasicToken,
+) -> Result<(), ParseError> {
+    match tokens.get(0) {
+        Some(token) if token == expected => Ok(()),
+        Some(token) => Err(ParseError::UnexpectedToken(token.clone())),
+        None => Err(ParseError::MissingToken(expected.clone())),
+    }
 }

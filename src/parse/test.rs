@@ -68,6 +68,46 @@ fn test_tokenize_basic() {
 }
 
 #[test]
+fn test_parse_for() {
+    assert_eq!(
+        tokenize("FOR x = 0 TO y\nPRINT x\nNEXT x").unwrap(),
+        vec![
+            BasicToken::NewLine,
+            BasicToken::For,
+            BasicToken::Name(String::from("x")),
+            BasicToken::Assign,
+            BasicToken::Integer(0),
+            BasicToken::To,
+            BasicToken::Name(String::from("y")),
+            BasicToken::NewLine,
+            BasicToken::Print,
+            BasicToken::Name(String::from("x")),
+            BasicToken::NewLine,
+            BasicToken::Next,
+            BasicToken::Name(String::from("x")),
+        ]
+    );
+
+    assert_eq!(
+        build_ast(
+            &tokenize("FOR x = 0 TO y\nPRINT x\nNEXT x").unwrap(),
+            &Default::default()
+        )
+        .unwrap(),
+        BasicAstBlock::new([BasicAstInstruction::For {
+            variable: String::from("x"),
+            start: BasicAstExpression::Integer(0),
+            end: BasicAstExpression::Variable(String::from("y")),
+            step: BasicAstExpression::Integer(1),
+            instructions: BasicAstBlock::new([BasicAstInstruction::Print(vec![(
+                BasicAstExpression::Variable(String::from("x")),
+                false
+            )]),])
+        }])
+    );
+}
+
+#[test]
 fn test_operator_precedence() {
     fn test_parse<const N: usize>(list: [BasicToken; N]) -> BasicAstExpression {
         parse_expression(&mut Cursor::from(&list)).unwrap()
