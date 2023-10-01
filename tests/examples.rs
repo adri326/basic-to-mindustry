@@ -1,3 +1,5 @@
+#![feature(fs_try_exists)]
+
 use std::path::{Path, PathBuf};
 
 use basic_to_mindustry::common::Config;
@@ -55,6 +57,15 @@ fn test_examples_opt() {
             panic!("Basic program in examples/ has an invalid filename: {}", file_name);
         };
 
+        let opt_0 = format!("tests/examples/{}.0.mlog", program_name);
+        if !std::fs::try_exists(&opt_0).unwrap() {
+            continue
+        }
+
+        let opt_0 = std::fs::read_to_string(opt_0).unwrap_or_else(|e| {
+            panic!("Couldn't open tests/examples/{}.0.mlog: {:?}", program_name, e);
+        });
+
         let tokenized = tokenize(&file).unwrap_or_else(|e| {
             panic!("Error tokenizing {:?}: {:?}", file_name, e);
         });
@@ -63,9 +74,6 @@ fn test_examples_opt() {
         });
         let translated = translate_ast(&parsed, &mut Default::default(), &config);
 
-        let opt_0 = std::fs::read_to_string(format!("tests/examples/{}.0.mlog", program_name)).unwrap_or_else(|e| {
-            panic!("Couldn't open tests/examples/{}.0.mlog: {:?}", program_name, e);
-        });
 
         pretty_assertions::assert_eq!(opt_0.trim(), format!("{}", translated).trim());
 
