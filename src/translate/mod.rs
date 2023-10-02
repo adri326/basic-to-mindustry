@@ -86,6 +86,36 @@ fn translate_expression(
     }
 }
 
+macro_rules! translate_call {
+    (
+        $name:expr,
+        $arguments:expr,
+        $res:expr,
+        [ $( $matcher:pat ),* $(,)? ],
+        $instruction:expr $(,)?
+    ) => {{
+        let [ $( $matcher ),* ] = &$arguments[..] else {
+            let name_uppercase = String::from($name).to_uppercase();
+            panic!("{}(...) called with invalid arguments", name_uppercase);
+        };
+
+        let instruction = $instruction;
+        $res.push(instruction);
+    }}
+}
+
+macro_rules! translate_operand {
+    (
+        $operand:expr,
+        $res:expr,
+        $namer:expr $(,)?
+    ) => {{
+        let name = $namer.temporary();
+        $res.append(&mut translate_expression($operand, $namer, name.clone()));
+        Operand::Variable(name)
+    }};
+}
+
 pub fn translate_ast(
     basic_ast: &BasicAstBlock,
     namer: &mut Namer,
@@ -188,15 +218,61 @@ pub fn translate_ast(
                         namer,
                         tmp_name.clone(),
                     ));
-                    res.push(MindustryOperation::Generic(
-                        String::from("print"),
-                        vec![Operand::Variable(tmp_name)],
-                    ));
+                    res.push(MindustryOperation::Print(Operand::Variable(tmp_name)));
                 }
             }
+            Instr::CallBuiltin(name, arguments) if name == "read" => translate_call!(
+                "read",
+                arguments,
+                res,
+                [BasicAstExpression::Variable(out_name), cell, index],
+                MindustryOperation::Read {
+                    out_name: out_name.clone(),
+                    cell: translate_operand!(cell, res, namer),
+                    index: translate_operand!(index, res, namer),
+                }
+            ),
+            Instr::CallBuiltin(name, arguments) if name == "write" => translate_call!(
+                "write",
+                arguments,
+                res,
+                [value, cell, index],
+                MindustryOperation::Write {
+                    value: translate_operand!(value, res, namer),
+                    cell: translate_operand!(cell, res, namer),
+                    index: translate_operand!(index, res, namer),
+                }
+            ),
+            Instr::CallBuiltin(name, arguments) if name == "print_flush" => translate_call!(
+                "print_flush",
+                arguments,
+                res,
+                [cell],
+                MindustryOperation::PrintFlush(translate_operand!(cell, res, namer))
+            ),
+            Instr::CallBuiltin(name, arguments) if name == "print_flush_global" => {
+                let BasicAstExpression::Variable(buffer) = &arguments[0] else {
+                    unreachable!("print_flush_global constructed with invalid arguments");
+                };
+
+                let instruction = MindustryOperation::WorldPrintFlush(match buffer.as_str() {
+                    "mission" => WorldPrintFlush::Mission,
+                    "notify" => WorldPrintFlush::Notify,
+                    "announce" => {
+                        WorldPrintFlush::Announce(translate_operand!(&arguments[1], res, namer))
+                    }
+                    "toast" => {
+                        WorldPrintFlush::Toast(translate_operand!(&arguments[1], res, namer))
+                    }
+                    _ => unreachable!("print_flush_global constructed with invalid arguments"),
+                });
+
+                res.push(instruction);
+            }
             Instr::CallBuiltin(name, arguments) => {
-                let Some((target_name, mutating, _)) = config.builtin_functions.get(name) else {
-                    unreachable!("CallBuilting constructed with unknown function name");
+                let Some((Some(target_name), mutating, _)) = config.builtin_functions.get(name)
+                else {
+                    unreachable!("CallBuiltin constructed with unknown function name");
                 };
                 let mutating = *mutating;
 
@@ -315,6 +391,22 @@ impl std::fmt::Display for MindustryProgram {
                 MindustryOperation::Set(name, value) => {
                     writeln!(f, "set {} {}", name, value)?;
                 }
+                MindustryOperation::Print(value) => {
+                    writeln!(f, "print {}", value)?;
+                }
+                MindustryOperation::Read {
+                    out_name,
+                    cell,
+                    index,
+                } => {
+                    writeln!(f, "read {} {} {}", out_name, cell, index)?;
+                }
+                MindustryOperation::Write { value, cell, index } => {
+                    writeln!(f, "write {} {} {}", value, cell, index)?;
+                }
+                MindustryOperation::PrintFlush(cell) => {
+                    writeln!(f, "printflush {}", cell)?;
+                }
                 MindustryOperation::Generic(name, operands) => {
                     write!(f, "{}", name)?;
                     for operand in operands {
@@ -329,6 +421,16 @@ impl std::fmt::Display for MindustryProgram {
                         write!(f, " {}", operand)?;
                     }
                     writeln!(f)?;
+                }
+                MindustryOperation::WorldPrintFlush(config) => {
+                    match config {
+                        WorldPrintFlush::Notify => writeln!(f, "message notify")?,
+                        WorldPrintFlush::Mission => writeln!(f, "message mission")?,
+                        WorldPrintFlush::Announce(time) => {
+                            writeln!(f, "message announce {}", time)?
+                        }
+                        WorldPrintFlush::Toast(time) => writeln!(f, "message toast {}", time)?,
+                    };
                 }
             }
         }

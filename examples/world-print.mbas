@@ -1,0 +1,15 @@
+PRINT "Hello, world"
+
+IF method < 2 THEN
+    IF method == 0 THEN
+        PRINT_FLUSH_GLOBAL(mission)
+    ELSE
+        PRINT_FLUSH_GLOBAL(notify)
+    END IF
+ELSE
+    IF method == 2 THEN
+        PRINT_FLUSH_GLOBAL(toast, 1)
+    ELSE
+        PRINT_FLUSH_GLOBAL(announce, 1)
+    END IF
+END IF

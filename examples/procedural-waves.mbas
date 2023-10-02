@@ -12,7 +12,7 @@ initial_wait:
 
     PRINT "[red]Enemies[white] approaching: "
     PRINT ceil(remaining / 1000), " s"
-    PRINT_MESSAGE_MISSION()
+    PRINT_FLUSH_GLOBAL(mission)
 
     wait(0.5)
 
@@ -54,7 +54,7 @@ main:
 
         PRINT "[yellow]Wave ", wave, "[white] - "
         PRINT "Next wave: ", ceil(remaining / 1000), " s"
-        PRINT_MESSAGE_MISSION()
+        PRINT_FLUSH_GLOBAL(mission)
 
         wait(0.5)
 

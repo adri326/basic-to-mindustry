@@ -1,8 +1,18 @@
 use std::collections::HashMap;
 
-#[derive(Clone, Debug)]
+use crate::{
+    parse::ParseError,
+    repr::basic::{BasicAstExpression, BasicAstInstruction},
+};
+
 pub struct Config {
-    pub builtin_functions: HashMap<String, (String, bool, usize)>,
+    pub builtin_functions: HashMap<String, (Option<String>, bool, usize)>,
+
+    /// Used for functions like `print_flush_world`
+    pub special_functions: HashMap<
+        String,
+        Box<dyn Fn(Vec<BasicAstExpression>) -> Result<BasicAstInstruction, ParseError>>,
+    >,
 }
 
 impl Default for Config {
@@ -11,25 +21,63 @@ impl Default for Config {
             ( $name:expr, $target_name:expr, $mutating:expr, $n_args:expr ) => {
                 (
                     String::from($name),
-                    (String::from($target_name), $mutating, $n_args),
+                    (
+                        ($target_name as Option<&'static str>).map(String::from),
+                        $mutating,
+                        $n_args,
+                    ),
                 )
             };
         }
+
+        let mut special_functions: HashMap<
+            String,
+            Box<dyn Fn(Vec<BasicAstExpression>) -> Result<BasicAstInstruction, _>>,
+        > = HashMap::new();
+
+        special_functions.insert(
+            String::from("print_flush_global"),
+            Box::new(|arguments: Vec<BasicAstExpression>| {
+                let BasicAstExpression::Variable(buffer) = &arguments[0] else {
+                    return Err(ParseError::InvalidArgument(arguments[0].clone()));
+                };
+
+                let expected_length = match buffer.as_str() {
+                    "notify" => 1,
+                    "mission" => 1,
+                    "announce" => 2,
+                    "toast" => 2,
+                    _ => return Err(ParseError::InvalidArgument(arguments[0].clone())),
+                };
+
+                if arguments.len() != expected_length {
+                    return Err(ParseError::InvalidArgumentCount(
+                        String::from("print_flush_global"),
+                        expected_length,
+                        arguments.len(),
+                    ));
+                }
+
+                Ok(BasicAstInstruction::CallBuiltin(
+                    String::from("print_flush_global"),
+                    arguments,
+                ))
+            }),
+        );
+
         Self {
             builtin_functions: HashMap::from([
-                builtin_function!("print_flush", "printflush", false, 1),
-                // TODO: write a special case for message
-                builtin_function!("print_message_mission", "message mission", false, 0),
-                builtin_function!("read", "read", true, 3),
-                // TODO: don't use a generic operation here
-                builtin_function!("write", "write", false, 3),
-                builtin_function!("wait", "wait", false, 1),
+                builtin_function!("print_flush", None, false, 1),
+                builtin_function!("read", None, true, 3),
+                builtin_function!("write", None, false, 3),
+                builtin_function!("wait", Some("wait"), false, 1),
                 // TODO: don't use a generic operation here either
-                builtin_function!("set_flag", "setflag", false, 2),
-                builtin_function!("get_flag", "getflag", true, 2),
+                builtin_function!("set_flag", Some("setflag"), false, 2),
+                builtin_function!("get_flag", Some("getflag"), true, 2),
                 // TODO: same thing
-                builtin_function!("spawn", "spawn", false, 6),
+                builtin_function!("spawn", Some("spawn"), false, 6),
             ]),
+            special_functions,
         }
     }
 }

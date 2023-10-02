@@ -1,5 +1,7 @@
 use super::operator::*;
 
+const STRING_BUFFER: &'static str = "@__mlog__string";
+
 #[derive(Debug, Clone)]
 pub enum Operand {
     Variable(String),
@@ -23,12 +25,40 @@ impl std::fmt::Display for Operand {
 }
 
 #[derive(Debug, Clone)]
+pub enum WorldPrintFlush {
+    Notify,
+    Mission,
+    Announce(Operand),
+    Toast(Operand),
+}
+
+#[derive(Debug, Clone)]
 pub enum MindustryOperation {
     JumpLabel(String),
     Jump(String),
     JumpIf(String, Operator, Operand, Operand),
     Operator(String, Operator, Operand, Operand),
     UnaryOperator(String, UnaryOperator, Operand),
+
+    /// Reads the value at the `index`-th place in `cell`
+    Read {
+        out_name: String,
+        cell: Operand,
+        index: Operand,
+    },
+    /// Writes `value` to the `index`-th place in `cell`
+    Write {
+        value: Operand,
+        cell: Operand,
+        index: Operand,
+    },
+    /// Appends the given value to the print buffer
+    Print(Operand),
+    /// Flushes the print buffer to a message cell
+    PrintFlush(Operand),
+    /// Available to world processors only - flushes the print buffer to a global buffer
+    WorldPrintFlush(WorldPrintFlush),
+
     // TODO: add RandOperator
     Set(String, Operand),
     /// A generic operation, with the following invariants:
@@ -46,6 +76,7 @@ pub enum MindustryOperation {
 impl MindustryOperation {
     pub(crate) fn operands(&self) -> Box<[&Operand]> {
         match self {
+            Self::Jump(_) | Self::JumpLabel(_) => Box::new([]),
             Self::JumpIf(_label, _operator, lhs, rhs) => Box::new([lhs, rhs]),
             Self::Operator(_target, _operator, lhs, rhs) => Box::new([lhs, rhs]),
             Self::UnaryOperator(_target, _operator, value) => Box::new([value]),
@@ -56,19 +87,46 @@ impl MindustryOperation {
             Self::GenericMut(_name, _out_name, operands) => {
                 operands.iter().collect::<Vec<_>>().into_boxed_slice()
             }
-            _ => Box::new([]),
+            Self::PrintFlush(cell) => Box::new([cell]),
+            Self::WorldPrintFlush(wpf) => match wpf {
+                WorldPrintFlush::Notify => Box::new([]),
+                WorldPrintFlush::Mission => Box::new([]),
+                WorldPrintFlush::Announce(time) => Box::new([time]),
+                WorldPrintFlush::Toast(time) => Box::new([time]),
+            },
+            Self::Print(operand) => Box::new([operand]),
+            Self::Read {
+                out_name: _,
+                cell,
+                index,
+            } => Box::new([cell, index]),
+            Self::Write { value, cell, index } => Box::new([value, cell, index]),
         }
     }
 
     pub(crate) fn operands_mut(&mut self) -> Vec<&mut Operand> {
         match self {
+            Self::Jump(_) | Self::JumpLabel(_) => vec![],
             Self::JumpIf(_label, _operator, lhs, rhs) => vec![lhs, rhs],
             Self::Operator(_target, _operator, lhs, rhs) => vec![lhs, rhs],
             Self::UnaryOperator(_target, _operator, value) => vec![value],
             Self::Set(_target, value) => vec![value],
             Self::Generic(_name, operands) => operands.iter_mut().collect::<Vec<_>>(),
             Self::GenericMut(_name, _out_name, operands) => operands.iter_mut().collect::<Vec<_>>(),
-            _ => vec![],
+            Self::PrintFlush(cell) => vec![cell],
+            Self::WorldPrintFlush(wpf) => match wpf {
+                WorldPrintFlush::Notify => vec![],
+                WorldPrintFlush::Mission => vec![],
+                WorldPrintFlush::Announce(time) => vec![time],
+                WorldPrintFlush::Toast(time) => vec![time],
+            },
+            Self::Print(operand) => vec![operand],
+            Self::Read {
+                out_name: _,
+                cell,
+                index,
+            } => vec![cell, index],
+            Self::Write { value, cell, index } => vec![value, cell, index],
         }
     }
 
@@ -77,12 +135,26 @@ impl MindustryOperation {
             MindustryOperation::JumpLabel(_)
             | MindustryOperation::Jump(_)
             | MindustryOperation::JumpIf(_, _, _, _)
-            | MindustryOperation::Generic(_, _) => false,
+            | MindustryOperation::Generic(_, _)
+            | MindustryOperation::Write {
+                value: _,
+                cell: _,
+                index: _,
+            } => false,
 
             MindustryOperation::Operator(out_name, _, _, _)
             | MindustryOperation::UnaryOperator(out_name, _, _)
             | MindustryOperation::Set(out_name, _)
-            | MindustryOperation::GenericMut(_, out_name, _) => out_name == var_name,
+            | MindustryOperation::GenericMut(_, out_name, _)
+            | MindustryOperation::Read {
+                out_name,
+                cell: _,
+                index: _,
+            } => out_name == var_name,
+
+            MindustryOperation::Print(_)
+            | MindustryOperation::PrintFlush(_)
+            | MindustryOperation::WorldPrintFlush(_) => var_name == STRING_BUFFER,
         }
     }
 }

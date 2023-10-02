@@ -4,6 +4,8 @@ pub use tokenize::*;
 mod ast;
 pub use ast::*;
 
+use crate::repr::basic::BasicAstExpression;
+
 #[cfg(test)]
 mod test;
 
@@ -16,4 +18,5 @@ pub enum ParseError {
     ExpectedVariable,
     ExpectedOperand,
     WrongForVariable(String, String),
+    InvalidArgument(BasicAstExpression),
 }

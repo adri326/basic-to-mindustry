@@ -220,7 +220,10 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                 }
 
                 let lowercase_fn_name = fn_name.to_lowercase();
-                if let Some((_, mutating, n_args)) =
+
+                if let Some(translation_fn) = config.special_functions.get(&lowercase_fn_name) {
+                    instructions.push(translation_fn(arguments)?);
+                } else if let Some((_, mutating, n_args)) =
                     config.builtin_functions.get(&lowercase_fn_name)
                 {
                     if *mutating {
@@ -242,7 +245,7 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                         arguments,
                     ));
                 } else {
-                    unimplemented!("User procedure calls are not yet supported!");
+                    unimplemented!("No function named {} found!", fn_name);
                 }
             }
             _ => {

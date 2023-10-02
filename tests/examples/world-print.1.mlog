@@ -1,0 +1,16 @@
+print "Hello, world"
+jump main__label_0_else greaterThanEqual method 2
+jump main__label_2_else notEqual method 0
+message mission
+jump main__label_1_endif always 0 0
+main__label_2_else:
+message notify
+jump main__label_1_endif always 0 0
+main__label_0_else:
+jump main__label_4_else notEqual method 2
+message toast 1
+jump main__label_5_endif always 0 0
+main__label_4_else:
+message announce 1
+main__label_5_endif:
+main__label_1_endif:

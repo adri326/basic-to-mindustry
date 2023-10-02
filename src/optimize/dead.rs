@@ -27,22 +27,7 @@ pub(crate) fn optimize_dead_code(program: MindustryProgram) -> MindustryProgram 
                 push_var(lhs);
                 push_var(rhs);
             }
-            MindustryOperation::Operator(_, _, lhs, rhs) => {
-                push_var(lhs);
-                push_var(rhs);
-            }
-            MindustryOperation::UnaryOperator(_, _, value) => {
-                push_var(value);
-            }
-            MindustryOperation::Set(_, value) => {
-                push_var(value);
-            }
-            MindustryOperation::Generic(_, values) => {
-                values.iter().for_each(&mut push_var);
-            }
-            MindustryOperation::GenericMut(_, _, values) => {
-                values.iter().for_each(&mut push_var);
-            }
+            other => other.operands().iter().copied().for_each(&mut push_var),
         }
     }
 
