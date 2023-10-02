@@ -19,7 +19,7 @@ fn read_basic_examples() -> impl Iterator<Item = (String, String)> {
             if entry
                 .file_name()
                 .into_string()
-                .map(|name| name.ends_with(".basic"))
+                .map(|name| name.ends_with(".mbas"))
                 .unwrap_or(false)
             {
                 let file_name = entry.file_name().into_string().unwrap();

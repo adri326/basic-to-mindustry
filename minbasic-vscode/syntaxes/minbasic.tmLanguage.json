@@ -1,0 +1,140 @@
+{
+    "scopeName": "source.mbas",
+    "fileTypes": [
+        "mbas",
+        "minbasic"
+    ],
+    "name": "MinBasic",
+    "patterns": [
+        {
+            "captures": {
+                "1": {
+                    "name": "punctuation.definition.comment.minbasic"
+                }
+            },
+            "comment": "Comment",
+            "match": "^ *(REM\\b|').*",
+            "name": "comment.line.minbasic"
+        },
+        {
+            "comment": "Delimiter",
+            "match": "[,:;]",
+            "name": "meta.delimiter.object.minbasic"
+        },
+        {
+            "comment": "Keyword",
+            "match": "(?i)(\\b((END ?)?IF|(END )?SELECT|(RESUME )?NEXT|CASE|CLOSE|DO|ELSE|FOR|GOSUB|GOTO|LOOP|ON|OPEN|RETURN|THEN|TO|UNTIL|WHILE)\\b)",
+            "name": "keyword.control.minbasic"
+        },
+        {
+            "comment": "Function",
+            "match": "(?i)(\\b(PRINT)\\b)",
+            "name": "support.function.minbasic"
+        },
+        {
+            "comment": "Operator",
+            "match": "(?i)((\\+|=|<|>|<>|AND|OR))",
+            "name": "keyword.operator.minbasic"
+        },
+        {
+            "comment": "Numeric",
+            "match": "\\b(\\d(\\.\\d)?)+",
+            "name": "constant.numeric.minbasic"
+        },
+        {
+            "comment": "Mindustry builtins",
+            "match": "(@(?:time|tick|unit|counter|this[xy]?|ipt|links|map[wh]))\\b",
+            "name": "constant.global.minbasic"
+        },
+        {
+            "captures": {
+                "1": {
+                    "name": "entity.name.function.minbasic"
+                }
+            },
+            "comment": "SUB",
+            "match": "(?i)(^ *(\\w+):)",
+            "name": "meta.function.minbasic"
+        },
+        {
+            "name": "meta.assignment.minbasic",
+            "match": "^ *((?i)LET +)([a-zA-Z_@#][a-zA-Z0-9_@#]*) *(=)",
+            "captures": {
+                "1": {
+                    "name": "keyword.other.minbasic"
+                },
+                "2": {
+                    "name": "variable.other.minbasic"
+                },
+                "3": {
+                    "name": "keyword.operator.assignment.minbasic"
+                }
+            }
+        },
+        {
+            "comment": "Brace, round",
+            "match": "[\\(\\)]",
+            "name": "meta.brace.round.minbasic"
+        },
+        {
+            "comment": "Brace, curly",
+            "match": "[\\{\\}]",
+            "name": "meta.brace.curly.minbasic"
+        },
+        {
+            "begin": "(\\w+)(\\()",
+            "beginCaptures": {
+                "1": {
+                    "name": "entity.name.function.minbasic"
+                },
+                "2": {
+                    "name": "meta.brace.round.minbasic"
+                }
+            },
+            "comment": "Function call",
+            "end": "(\\))",
+            "endCaptures": {
+                "1": {
+                    "name": "meta.brace.round.minbasic"
+                }
+            },
+            "name": "meta.function.call.minbasic",
+            "patterns": [
+                {
+                    "include": "$self"
+                }
+            ]
+        },
+        {
+            "begin": "(\")",
+            "beginCaptures": {
+                "1": {
+                    "name": "punctuation.definition.string.begin.minbasic"
+                }
+            },
+            "comment": "String, double-quoted",
+            "end": "(\")",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.definition.string.end.minbasic"
+                }
+            },
+            "name": "string.quoted.double.minbasic",
+            "patterns": [
+                {
+                    "comment": "Escaped double-quote inside double-quoted string",
+                    "match": "(\\\")",
+                    "name": "constant.character.escape.minbasic"
+                },
+                {
+                    "comment": "Single quote inside double-quoted string",
+                    "match": "(')",
+                    "name": "other.minbasic"
+                },
+                {
+                    "include": "$self"
+                }
+            ]
+        }
+    ]
+}
