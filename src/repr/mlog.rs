@@ -37,6 +37,7 @@ pub enum MindustryOperation {
     JumpLabel(String),
     Jump(String),
     JumpIf(String, Operator, Operand, Operand),
+    End,
     Operator(String, Operator, Operand, Operand),
     UnaryOperator(String, UnaryOperator, Operand),
 
@@ -76,7 +77,7 @@ pub enum MindustryOperation {
 impl MindustryOperation {
     pub(crate) fn operands(&self) -> Box<[&Operand]> {
         match self {
-            Self::Jump(_) | Self::JumpLabel(_) => Box::new([]),
+            Self::Jump(_) | Self::JumpLabel(_) | Self::End => Box::new([]),
             Self::JumpIf(_label, _operator, lhs, rhs) => Box::new([lhs, rhs]),
             Self::Operator(_target, _operator, lhs, rhs) => Box::new([lhs, rhs]),
             Self::UnaryOperator(_target, _operator, value) => Box::new([value]),
@@ -106,7 +107,7 @@ impl MindustryOperation {
 
     pub(crate) fn operands_mut(&mut self) -> Vec<&mut Operand> {
         match self {
-            Self::Jump(_) | Self::JumpLabel(_) => vec![],
+            Self::Jump(_) | Self::JumpLabel(_) | Self::End => vec![],
             Self::JumpIf(_label, _operator, lhs, rhs) => vec![lhs, rhs],
             Self::Operator(_target, _operator, lhs, rhs) => vec![lhs, rhs],
             Self::UnaryOperator(_target, _operator, value) => vec![value],
@@ -132,29 +133,59 @@ impl MindustryOperation {
 
     pub(crate) fn mutates(&self, var_name: &str) -> bool {
         match self {
-            MindustryOperation::JumpLabel(_)
-            | MindustryOperation::Jump(_)
-            | MindustryOperation::JumpIf(_, _, _, _)
-            | MindustryOperation::Generic(_, _)
-            | MindustryOperation::Write {
+            Self::JumpLabel(_)
+            | Self::Jump(_)
+            | Self::JumpIf(_, _, _, _)
+            | Self::Generic(_, _)
+            | Self::End
+            | Self::Write {
                 value: _,
                 cell: _,
                 index: _,
             } => false,
 
-            MindustryOperation::Operator(out_name, _, _, _)
-            | MindustryOperation::UnaryOperator(out_name, _, _)
-            | MindustryOperation::Set(out_name, _)
-            | MindustryOperation::GenericMut(_, out_name, _)
-            | MindustryOperation::Read {
+            Self::Operator(out_name, _, _, _)
+            | Self::UnaryOperator(out_name, _, _)
+            | Self::Set(out_name, _)
+            | Self::GenericMut(_, out_name, _)
+            | Self::Read {
                 out_name,
                 cell: _,
                 index: _,
             } => out_name == var_name,
 
-            MindustryOperation::Print(_)
-            | MindustryOperation::PrintFlush(_)
-            | MindustryOperation::WorldPrintFlush(_) => var_name == STRING_BUFFER,
+            Self::Print(_) | Self::PrintFlush(_) | Self::WorldPrintFlush(_) => {
+                var_name == STRING_BUFFER
+            }
+        }
+    }
+
+    /// Returns true if the instruction could cause the next instruction to be executed to not be `@counter + 1`,
+    /// or the previous instruction to be executed to not be `@counter - 1`.
+    /// In this case, a jump label should be present at the site of jump, or else the optimizations could break things.
+    pub fn breaks_flow(&self) -> bool {
+        match self {
+            Self::JumpLabel(_) | Self::Jump(_) | Self::JumpIf(_, _, _, _) | Self::End => true,
+
+            Self::Read {
+                out_name: _,
+                cell: _,
+                index: _,
+            }
+            | Self::Write {
+                value: _,
+                cell: _,
+                index: _,
+            }
+            | Self::Print(_)
+            | Self::PrintFlush(_)
+            | Self::WorldPrintFlush(_)
+            | Self::Generic(_, _)
+            | Self::GenericMut(_, _, _) => false,
+
+            Self::Set(var_name, _)
+            | Self::Operator(var_name, _, _, _)
+            | Self::UnaryOperator(var_name, _, _) => var_name == "@counter",
         }
     }
 }

@@ -1,12 +1,8 @@
-use regex::Regex;
-
 use super::*;
 use crate::prelude::*;
 
 /// Tries to merge the condition in an `op` into the `jump` itself
 pub fn optimize_jump_op(program: MindustryProgram) -> MindustryProgram {
-    let tmp_regex = Regex::new(r"__tmp_[0-9]+$").unwrap();
-
     let mut res = MindustryProgram::new();
     let instructions = program.0;
 
@@ -36,7 +32,7 @@ pub fn optimize_jump_op(program: MindustryProgram) -> MindustryProgram {
                     }
                 };
 
-                if !tmp_regex.is_match(&var_name) {
+                if !is_temporary_variable(&var_name) {
                     res.push(instruction.clone());
                     continue;
                 }
@@ -52,8 +48,7 @@ pub fn optimize_jump_op(program: MindustryProgram) -> MindustryProgram {
                             {
                                 Lookaround::Stop((*operator, lhs.clone(), rhs.clone()))
                             }
-                            MindustryOperation::JumpLabel(_) => Lookaround::Abort,
-                            x if x.mutates(&var_name) => Lookaround::Abort,
+                            x if x.mutates(&var_name) || x.breaks_flow() => Lookaround::Abort,
                             _ => Lookaround::Continue,
                         },
                     )

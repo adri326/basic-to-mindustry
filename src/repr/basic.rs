@@ -13,8 +13,9 @@ pub enum BasicAstExpression {
 #[derive(Clone, Debug, PartialEq)]
 pub enum BasicAstInstruction {
     JumpLabel(String),
-    Assign(String, BasicAstExpression),
     Jump(String),
+    End,
+    Assign(String, BasicAstExpression),
     IfThenElse(BasicAstExpression, BasicAstBlock, BasicAstBlock),
     Print(Vec<(BasicAstExpression, bool)>),
     CallBuiltin(String, Vec<BasicAstExpression>),

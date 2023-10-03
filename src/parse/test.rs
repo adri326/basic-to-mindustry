@@ -63,6 +63,22 @@ fn test_tokenize_basic() {
             BasicToken::EndIf,
         ],
     );
+
+    assert_eq!(
+        tokenize("if x > 0 then\nend\nend if").unwrap(),
+        vec![
+            BasicToken::NewLine,
+            BasicToken::If,
+            BasicToken::Name(String::from("x")),
+            BasicToken::Operator(Operator::Gt),
+            BasicToken::Integer(0),
+            BasicToken::Then,
+            BasicToken::NewLine,
+            BasicToken::End,
+            BasicToken::NewLine,
+            BasicToken::EndIf,
+        ]
+    );
 }
 
 #[test]

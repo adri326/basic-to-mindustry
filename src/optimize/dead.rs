@@ -1,13 +1,9 @@
-use regex::Regex;
 use std::collections::HashSet;
 
 use super::*;
 use crate::prelude::*;
 
 pub(crate) fn optimize_dead_code(program: MindustryProgram) -> MindustryProgram {
-    let tmp_regex = Regex::new(r"__tmp_[0-9]+$").unwrap();
-    let label_regex = Regex::new(r"__label_[0-9]+").unwrap();
-
     let mut needed_vars = HashSet::new();
     let mut needed_labels = HashSet::new();
     let mut push_var = |operand: &Operand| {
@@ -36,7 +32,7 @@ pub(crate) fn optimize_dead_code(program: MindustryProgram) -> MindustryProgram 
         program,
         |_instructions, instruction, _index| match instruction {
             MindustryOperation::Set(name, _) | MindustryOperation::Operator(name, _, _, _) => {
-                if !tmp_regex.is_match(name) {
+                if !is_temporary_variable(name) {
                     return None;
                 }
 
@@ -47,7 +43,7 @@ pub(crate) fn optimize_dead_code(program: MindustryProgram) -> MindustryProgram 
                 Some(vec![])
             }
             MindustryOperation::JumpLabel(label) => {
-                if !label_regex.is_match(label) {
+                if !is_automatic_label(label) {
                     return None;
                 }
 

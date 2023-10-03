@@ -233,7 +233,7 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                 });
             }
 
-            // == Goto ==
+            // == Goto and End ==
             [BasicToken::Goto, BasicToken::Integer(label), ..] => {
                 tokens.take(2);
                 instructions.push(BasicAstInstruction::Jump(label.to_string()));
@@ -241,6 +241,10 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
             [BasicToken::Goto, BasicToken::Name(label), ..] => {
                 tokens.take(2);
                 instructions.push(BasicAstInstruction::Jump(label.clone()));
+            }
+            [BasicToken::End, ..] => {
+                tokens.take(1);
+                instructions.push(BasicAstInstruction::End);
             }
             // == Misc ==
             [BasicToken::Name(variable_name), BasicToken::Assign, ..] => {

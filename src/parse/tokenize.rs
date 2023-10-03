@@ -17,6 +17,7 @@ pub enum BasicToken {
     Next,
     While,
     Wend,
+    End,
     Do,
     Loop,
     LabelEnd,
@@ -80,6 +81,7 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
     let match_jump = Regex::new(r"(?i)^go\s*to").unwrap();
     let match_word =
         Regex::new(r"(?i)^(?:if|then|else|end\s?(?:if|while)|print|for|to|step|next|while|do|wend|loop)(?:\s|$)").unwrap();
+    let match_end = Regex::new(r"(?i)^end(?:\s|$)").unwrap();
     let match_space = Regex::new(r"^\s+").unwrap();
     let match_variable = Regex::new(r"^@?[a-zA-Z_][a-zA-Z_0-9]*").unwrap();
     let match_float = Regex::new(r"^[0-9]*\.[0-9]+").unwrap();
@@ -122,6 +124,7 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
                     "loop" => BasicToken::Loop,
                     _ => unreachable!("{}", word),
                 }),
+                match_end => (BasicToken::End),
                 match_variable(name) => (BasicToken::Name(name.to_string())),
                 match_float(float) => (BasicToken::Float(float.parse().unwrap())),
                 match_integer(int) => (BasicToken::Integer(int.parse().unwrap())),

@@ -1,12 +1,8 @@
-use regex::Regex;
-
 use super::*;
 use crate::prelude::*;
 
 /// Optimizes away unnecessary `sets`
 pub fn optimize_constant(program: MindustryProgram) -> MindustryProgram {
-    let tmp_regex = Regex::new(r"__tmp_[0-9]+$").unwrap();
-
     // Returns true if the variable is safe to substitute into an operand
     let is_safe_variable = |name: &str| -> bool {
         if matches!(name, "@this" | "@thisx" | "@thisy" | "@links") || is_unit_constant(name) {
@@ -21,7 +17,7 @@ pub fn optimize_constant(program: MindustryProgram) -> MindustryProgram {
             .operands()
             .iter()
             .filter_map(|operand| match operand {
-                Operand::Variable(name) if tmp_regex.is_match(name) => Some(name),
+                Operand::Variable(name) if is_temporary_variable(name) => Some(name),
                 _ => None,
             })
             .filter_map(|name| {
@@ -36,7 +32,7 @@ pub fn optimize_constant(program: MindustryProgram) -> MindustryProgram {
                         {
                             Lookaround::Abort
                         }
-                        MindustryOperation::JumpLabel(_label) => {
+                        other => {
                             // Note: jump labels mark boundaries for constants. For instance:
                             // ```
                             // set __tmp_1 "this is not a constant"
@@ -54,10 +50,7 @@ pub fn optimize_constant(program: MindustryProgram) -> MindustryProgram {
                             //
                             // A more complex algorithm could be used to check the flow of the program,
                             // but this usecase isn't needed yet.
-                            Lookaround::Abort
-                        }
-                        other => {
-                            if other.mutates(name) {
+                            if other.mutates(name) || other.breaks_flow() {
                                 Lookaround::Abort
                             } else {
                                 Lookaround::Continue
