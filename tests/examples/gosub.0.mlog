@@ -1,0 +1,51 @@
+set __gosub_retaddr 0
+set a 0
+set b 0
+set c 0
+op mul __gosub_retaddr __gosub_retaddr 1000
+op add __gosub_retaddr __gosub_retaddr @counter
+jump sub always 0 0
+main__label_0_return__phantom:
+set b 1
+set c 1
+jump trap always 0 0
+end
+sub:
+set a 1
+op mod __return __gosub_retaddr 1000
+op idiv __gosub_retaddr __gosub_retaddr 1000
+op add @counter __return 1
+set a 2
+trap:
+set main__tmp_5 a
+set main__tmp_6 1
+op equal main__tmp_3 main__tmp_5 main__tmp_6
+set main__tmp_7 b
+set main__tmp_8 1
+op equal main__tmp_4 main__tmp_7 main__tmp_8
+op and main__tmp_1 main__tmp_3 main__tmp_4
+set main__tmp_9 c
+set main__tmp_10 1
+op equal main__tmp_2 main__tmp_9 main__tmp_10
+op and main__tmp_0 main__tmp_1 main__tmp_2
+jump main__label_1_else notEqual main__tmp_0 true
+set main__tmp_11 "success"
+print main__tmp_11
+jump main__label_2_endif always 0 0
+main__label_1_else:
+set main__tmp_12 "fail: "
+print main__tmp_12
+set main__tmp_13 a
+print main__tmp_13
+set main__tmp_14 ", "
+print main__tmp_14
+set main__tmp_15 b
+print main__tmp_15
+set main__tmp_16 ", "
+print main__tmp_16
+set main__tmp_17 c
+print main__tmp_17
+main__label_2_endif:
+set main__tmp_18 message1
+printflush main__tmp_18
+jump trap always 0 0

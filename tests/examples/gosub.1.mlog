@@ -1,0 +1,37 @@
+set __gosub_retaddr 0
+set a 0
+set b 0
+set c 0
+op mul __gosub_retaddr __gosub_retaddr 1000
+op add __gosub_retaddr __gosub_retaddr @counter
+jump sub always 0 0
+main__label_0_return__phantom:
+set b 1
+set c 1
+jump trap always 0 0
+end
+sub:
+set a 1
+op mod __return __gosub_retaddr 1000
+op idiv __gosub_retaddr __gosub_retaddr 1000
+op add @counter __return 1
+set a 2
+trap:
+op equal main__tmp_3 a 1
+op equal main__tmp_4 b 1
+op and main__tmp_1 main__tmp_3 main__tmp_4
+op equal main__tmp_2 c 1
+op and main__tmp_0 main__tmp_1 main__tmp_2
+jump main__label_1_else notEqual main__tmp_0 true
+print "success"
+jump main__label_2_endif always 0 0
+main__label_1_else:
+print "fail: "
+print a
+print ", "
+print b
+print ", "
+print c
+main__label_2_endif:
+printflush message1
+jump trap always 0 0

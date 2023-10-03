@@ -1,5 +1,5 @@
 print "Hello, world"
-jump main__label_0_else greaterThanEqual method 2
+jump main__label_0_else greaterThanEq method 2
 jump main__label_2_else notEqual method 0
 message mission
 jump main__label_1_endif always 0 0

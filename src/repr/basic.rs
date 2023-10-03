@@ -13,7 +13,13 @@ pub enum BasicAstExpression {
 #[derive(Clone, Debug, PartialEq)]
 pub enum BasicAstInstruction {
     JumpLabel(String),
+    /// Immediately and always jump to the label or line number stored
     Jump(String),
+    /// Stores the return address, and jumps to the given label
+    GoSub(String),
+    /// Reads the return address and jumps to it
+    Return,
+    /// Stops the program, returning to the starting point
     End,
     Assign(String, BasicAstExpression),
     IfThenElse(BasicAstExpression, BasicAstBlock, BasicAstBlock),

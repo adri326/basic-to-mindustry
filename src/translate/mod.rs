@@ -4,6 +4,8 @@ use crate::prelude::*;
 
 mod display;
 
+const MAX_INSTRUCTION_COUNT: usize = 1000;
+
 pub struct Namer {
     var_index: usize,
     label_index: usize,
@@ -125,6 +127,7 @@ pub fn translate_ast(
 ) -> MindustryProgram {
     use crate::repr::basic::BasicAstInstruction as Instr;
     let mut res = MindustryProgram::new();
+    let mut has_return = false;
 
     for instruction in basic_ast.instructions.iter() {
         match instruction {
@@ -133,6 +136,45 @@ pub fn translate_ast(
             }
             Instr::Jump(to) => {
                 res.push(MindustryOperation::Jump(to.clone()));
+            }
+            Instr::GoSub(to) => {
+                let return_label = namer.label("return__phantom");
+                res.push(MindustryOperation::Operator(
+                    String::from("__gosub_retaddr"),
+                    Operator::Mul,
+                    Operand::Variable(String::from("__gosub_retaddr")),
+                    Operand::Integer(MAX_INSTRUCTION_COUNT as i64))
+                );
+                res.push(MindustryOperation::Operator(
+                    String::from("__gosub_retaddr"),
+                    Operator::Add,
+                    Operand::Variable(String::from("__gosub_retaddr")),
+                    Operand::Variable(String::from("@counter")),
+                ));
+                res.push(MindustryOperation::Jump(to.clone()));
+                res.push(MindustryOperation::JumpLabel(return_label));
+            }
+            Instr::Return => {
+                res.push(MindustryOperation::Operator(
+                    String::from("__return"),
+                    Operator::Mod,
+                    Operand::Variable(String::from("__gosub_retaddr")),
+                    Operand::Integer(MAX_INSTRUCTION_COUNT as i64))
+                );
+                res.push(MindustryOperation::Operator(
+                    String::from("__gosub_retaddr"),
+                    Operator::IDiv,
+                    Operand::Variable(String::from("__gosub_retaddr")),
+                    Operand::Integer(MAX_INSTRUCTION_COUNT as i64))
+                );
+                res.push(MindustryOperation::Operator(
+                    String::from("@counter"),
+                    Operator::Add,
+                    Operand::Variable(String::from("__return")),
+                    Operand::Integer(1))
+                );
+                // Add a guard at the beginning of the program, to clear out the return address
+                has_return = true;
             }
             Instr::End => {
                 res.push(MindustryOperation::End);
@@ -369,6 +411,10 @@ pub fn translate_ast(
                 }
             }
         }
+    }
+
+    if has_return {
+        res.0.insert(0, MindustryOperation::Set(String::from("__gosub_retaddr"), Operand::Integer(0)));
     }
 
     res

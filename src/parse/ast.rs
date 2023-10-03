@@ -246,6 +246,18 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                 tokens.take(1);
                 instructions.push(BasicAstInstruction::End);
             }
+            [BasicToken::GoSub, BasicToken::Integer(label), ..] => {
+                tokens.take(2);
+                instructions.push(BasicAstInstruction::GoSub(label.to_string()));
+            }
+            [BasicToken::GoSub, BasicToken::Name(label), ..] => {
+                tokens.take(2);
+                instructions.push(BasicAstInstruction::GoSub(label.clone()));
+            }
+            [BasicToken::Return, ..] => {
+                tokens.take(1);
+                instructions.push(BasicAstInstruction::Return);
+            }
             // == Misc ==
             [BasicToken::Name(variable_name), BasicToken::Assign, ..] => {
                 tokens.take(2);

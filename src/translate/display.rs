@@ -132,9 +132,9 @@ fn format_condition(operator: Operator) -> &'static str {
         Operator::Eq => "equal",
         Operator::Neq => "notEqual",
         Operator::Lt => "lessThan",
-        Operator::Lte => "lessThanEqual",
+        Operator::Lte => "lessThanEq",
         Operator::Gt => "greaterThan",
-        Operator::Gte => "greaterThanEqual",
+        Operator::Gte => "greaterThanEq",
         x => {
             panic!("Operator {:?} is not a condition!", x);
         }

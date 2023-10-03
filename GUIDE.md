@@ -205,3 +205,7 @@ DO WHILE x % 2 == 1
     x = 3*x + 1
 LOOP
 ```
+
+## Subroutines
+
+Subroutines allow you to execute the same piece of code from

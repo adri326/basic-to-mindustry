@@ -1,0 +1,25 @@
+a = 0
+b = 0
+c = 0
+
+GOSUB sub
+
+b = 1
+c = 1
+
+GOTO trap
+
+END
+sub:
+    a = 1
+    RETURN
+    a = 2
+
+trap:
+    IF a == 1 AND b == 1 AND c == 1 THEN
+        PRINT "success"
+    ELSE
+        PRINT "fail: ", a, ", ", b, ", ", c
+    END IF
+    PRINT_FLUSH(message1)
+    GOTO trap

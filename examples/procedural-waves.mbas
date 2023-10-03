@@ -1,23 +1,20 @@
-REM This is an example of a more complex program,
-REM which spawns procedural waves
+REM This is an example of a more complex program, which spawns procedural waves.
+REM The waves become progressively harder, and the wave delay is controlled by `cell1[0]`
 
 LET wave = 0
 LET timeout = @time + 120000
 
-initial_wait:
+DO
     LET remaining = timeout - @time
-    IF remaining <= 0 THEN
-        GOTO main
-    END IF
 
     PRINT "[red]Enemies[white] approaching: "
     PRINT ceil(remaining / 1000), " s"
     PRINT_FLUSH_GLOBAL(mission)
 
     wait(0.5)
+LOOP WHILE remaining > 0
 
-    GOTO initial_wait
-main:
+WHILE true
     wave = wave + 1
     REM TODO: difficult control wave multiplier
     LET progression = POW(wave / 4, 0.75)
@@ -32,33 +29,27 @@ main:
     LET air_units = units - tank_units - mech_units
 
     LET spawnx = 30
+    LET spawnairx = 30
     LET spawny = 50
 
-    GOTO spawn_tank
-    spawn_tank_end:
-    GOTO spawn_mech
-    spawn_mech_end:
-    LET spawnx = 20
-    GOTO spawn_air
-    spawn_air_end:
+    GOSUB spawn_tank
+    GOSUB spawn_mech
+    GOSUB spawn_air
 
     WRITE(wave, cell1, 1)
     READ(timeout, cell1, 0)
     timeout = @time + timeout * 1000
 
-    main_wait:
+    DO
         LET remaining = timeout - @time
-        IF remaining <= 0 THEN
-            GOTO main
-        END IF
 
         PRINT "[yellow]Wave ", wave, "[white] - "
         PRINT "Next wave: ", ceil(remaining / 1000), " s"
         PRINT_FLUSH_GLOBAL(mission)
 
         wait(0.5)
-
-        GOTO main_wait
+    LOOP WHILE remaining > 0
+WEND
 
 spawn_tank:
     FOR spawned = 1 TO tank_units
@@ -92,7 +83,7 @@ spawn_tank:
         END IF
 
     NEXT spawned
-    GOTO spawn_tank_end
+    RETURN
 
 spawn_mech:
     FOR spawned = 1 TO mech_units
@@ -125,28 +116,29 @@ spawn_mech:
         END IF
 
     NEXT spawned
-    GOTO spawn_mech_end
+    RETURN
 
 spawn_air:
     FOR spawned = 1 TO air_units
         LET roll = rand(progression)
         IF roll >= 3 THEN
             IF roll >= 4 THEN
-                SPAWN(@disrupt, spawnx, spawny, 0, @crux, _)
-                spawnx = spawnx - 5.75
+                SPAWN(@disrupt, spawnairx, spawny, 0, @crux, _)
+                spawnairx = spawnairx - 5.75
             ELSE
-                SPAWN(@quell, spawnx, spawny, 0, @crux, _)
-                spawnx = spawnx - 4.5
+                SPAWN(@quell, spawnairx, spawny, 0, @crux, _)
+                spawnairx = spawnairx - 4.5
             END IF
         ELSE
             IF roll >= 2 THEN
-                SPAWN(@obviate, spawnx, spawny, 0, @crux, _)
-                spawnx = spawnx - 3.12
+                SPAWN(@obviate, spawnairx, spawny, 0, @crux, _)
+                spawnairx = spawnairx - 3.12
             ELSE
                 IF roll >= 1 THEN
-                    SPAWN(@avert, spawnx, spawny, 0, @crux, _)
-                    spawnx = spawnx - 1
+                    SPAWN(@avert, spawnairx, spawny, 0, @crux, _)
+                    spawnairx = spawnairx - 1
                 ELSE
+                    REM The elude is the only non-air unit
                     SPAWN(@elude, spawnx, spawny, 0, @crux, _)
                     spawnx = spawnx - 1
                 END IF
@@ -156,6 +148,9 @@ spawn_air:
         IF spawnx < 10 THEN
             spawnx = 10
         END IF
+        IF spawnairx < 5 THEN
+            spawnairx = 5
+        END IF
 
     NEXT spawned
-    GOTO spawn_air_end
+    RETURN

@@ -3,6 +3,7 @@ pub enum Operator {
     Add,
     Sub,
     Mul,
+    IDiv,
     Div,
     Mod,
     RShift,
@@ -16,18 +17,19 @@ pub enum Operator {
     Max,
     Min,
     Pow,
-    // etc.
+    And,
+    Or,
 }
 
 impl Operator {
     pub(crate) fn precedence(self) -> u8 {
-        use Operator as O;
         match self {
-            O::Add | O::Sub => 3,
-            O::RShift | O::LShift => 4,
-            O::Mod => 5,
-            O::Mul | O::Div => 10,
-            O::Eq | O::Neq | O::Gt | O::Lt | O::Gte | O::Lte => 0,
+            Self::Add | Self::Sub => 3,
+            Self::RShift | Self::LShift => 4,
+            Self::Mod => 5,
+            Self::Mul | Self::Div | Self::IDiv => 10,
+            Self::Eq | Self::Neq | Self::Gt | Self::Lt | Self::Gte | Self::Lte => 1,
+            Self::And | Self::Or => 0,
             _ => 128,
         }
     }
@@ -54,12 +56,15 @@ pub(crate) fn format_operator(operator: Operator) -> &'static str {
         Operator::Sub => "sub",
         Operator::Mul => "mul",
         Operator::Div => "div",
+        Operator::IDiv => "idiv",
         Operator::Mod => "mod",
         Operator::RShift => "shr",
         Operator::LShift => "shl",
         Operator::Max => "max",
         Operator::Min => "min",
         Operator::Pow => "pow",
+        Operator::And => "and",
+        Operator::Or => "or",
     }
 }
 
@@ -70,6 +75,7 @@ pub enum UnaryOperator {
     Ceil,
     Rand,
     Sqrt,
+    // Not,
 }
 
 impl TryFrom<&str> for UnaryOperator {
