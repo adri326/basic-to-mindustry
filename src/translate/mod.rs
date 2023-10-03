@@ -184,6 +184,7 @@ pub fn translate_ast(
                 instructions,
             } => {
                 let start_label = namer.label("start");
+                let end_label = namer.label("end");
                 let end_name = namer.temporary();
                 let step_name = namer.temporary();
 
@@ -192,22 +193,75 @@ pub fn translate_ast(
                 res.append(&mut translate_expression(end, namer, end_name.clone()));
                 res.append(&mut translate_expression(step, namer, step_name.clone()));
 
-                // Body
+                // Condition
                 res.push(MindustryOperation::JumpLabel(start_label.clone()));
+                res.push(MindustryOperation::JumpIf(
+                    end_label.clone(),
+                    Operator::Gt,
+                    Operand::Variable(variable.clone()),
+                    Operand::Variable(end_name),
+                ));
+
+                // Body
                 res.append(&mut translate_ast(instructions, namer, config));
 
-                // Loop condition: increment variable and jump
+                // Increment variable and jump
                 res.push(MindustryOperation::Operator(
                     variable.clone(),
                     Operator::Add,
                     Operand::Variable(variable.clone()),
                     Operand::Variable(step_name),
                 ));
+                res.push(MindustryOperation::Jump(start_label));
+                res.push(MindustryOperation::JumpLabel(end_label));
+            }
+            Instr::While(condition, instructions) => {
+                let start_label = namer.label("start");
+                let end_label = namer.label("end");
+                let condition_name = namer.temporary();
+
+                // Loop condition
+                res.push(MindustryOperation::JumpLabel(start_label.clone()));
+                res.append(&mut translate_expression(
+                    condition,
+                    namer,
+                    condition_name.clone(),
+                ));
+                res.push(MindustryOperation::JumpIf(
+                    end_label.clone(),
+                    Operator::Eq,
+                    Operand::Variable(condition_name),
+                    Operand::Variable(String::from("false")),
+                ));
+
+                // Loop body
+                res.append(&mut translate_ast(instructions, namer, config));
+
+                // Loop end
+                res.push(MindustryOperation::Jump(start_label));
+                res.push(MindustryOperation::JumpLabel(end_label));
+            }
+            Instr::DoWhile(condition, instructions) => {
+                let start_label = namer.label("start");
+                let condition_name = namer.temporary();
+
+                // Loop start
+                res.push(MindustryOperation::JumpLabel(start_label.clone()));
+
+                // Loop body
+                res.append(&mut translate_ast(instructions, namer, config));
+
+                // Loop condition
+                res.append(&mut translate_expression(
+                    condition,
+                    namer,
+                    condition_name.clone(),
+                ));
                 res.push(MindustryOperation::JumpIf(
                     start_label,
-                    Operator::Lte,
-                    Operand::Variable(variable.clone()),
-                    Operand::Variable(end_name),
+                    Operator::Eq,
+                    Operand::Variable(condition_name),
+                    Operand::Variable(String::from("true")),
                 ));
             }
             Instr::Print(expressions) => {

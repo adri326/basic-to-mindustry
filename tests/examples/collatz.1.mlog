@@ -1,0 +1,21 @@
+set X 7
+main__label_0_start:
+jump main__label_1_end equal X 1
+main__label_2_start:
+op mod main__tmp_4 X 2
+jump main__label_3_end notEqual main__tmp_4 1
+op mul main__tmp_8 3 X
+op add X main__tmp_8 1
+print X
+print " "
+jump main__label_2_start always 0 0
+main__label_3_end:
+main__label_4_start:
+op div X X 2
+print X
+print " "
+op mod main__tmp_19 X 2
+jump main__label_4_start equal main__tmp_19 0
+jump main__label_0_start always 0 0
+main__label_1_end:
+printflush message1

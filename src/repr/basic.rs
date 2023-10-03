@@ -25,6 +25,8 @@ pub enum BasicAstInstruction {
         step: BasicAstExpression,
         instructions: BasicAstBlock,
     },
+    While(BasicAstExpression, BasicAstBlock),
+    DoWhile(BasicAstExpression, BasicAstBlock),
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]

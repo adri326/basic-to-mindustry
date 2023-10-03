@@ -1,0 +1,15 @@
+X = 7
+
+WHILE X != 1
+    WHILE X % 2 == 1
+        X = 3*X + 1
+        PRINT X, " "
+    END WHILE
+
+    DO
+        X = X / 2
+        PRINT X, " "
+    LOOP WHILE X % 2 == 0
+WEND
+
+PRINT_FLUSH(message1)

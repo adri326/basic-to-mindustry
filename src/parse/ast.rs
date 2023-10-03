@@ -2,6 +2,37 @@ use super::*;
 use crate::cursor::Cursor;
 use crate::prelude::*;
 
+/// Pops the last context, matches on it, and pushes the result of the match branch to the parent instruction list.
+/// Errors can be returned early, and branches need to be exhaustive.
+macro_rules! pop_context {
+    (
+        $context_stack:expr, $instructions:ident,
+        { $( $match:pat => $instr:block $(,)? )* }
+    ) => {
+        match $context_stack.pop() {
+            Some(($instructions, context)) => {
+                match context {
+                    $(
+                        $match => {
+                            let Some((ref mut parent_instructions, _)) = $context_stack.last_mut()
+                            else {
+                                unreachable!("{} not wrapped in another context", stringify!($match));
+                            };
+
+                            #[allow(unreachable_code)]
+                            parent_instructions.push($instr);
+                        },
+                    )*
+                }
+            }
+
+            None => {
+                unreachable!("Empty context stack");
+            },
+        }
+    }
+}
+
 pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock, ParseError> {
     enum Context {
         Main,
@@ -13,6 +44,9 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
             BasicAstExpression,
             BasicAstExpression,
         ),
+        While(BasicAstExpression),
+        Do,
+        DoWhile(BasicAstExpression),
     }
 
     let mut tokens = Cursor::from(tokens);
@@ -65,35 +99,25 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
             [BasicToken::EndIf, ..] => {
                 tokens.take(1);
 
-                match context_stack.pop().unwrap() {
-                    (instructions, Context::If(condition)) => {
-                        let Some((ref mut parent_instructions, _)) = context_stack.last_mut()
-                        else {
-                            unreachable!("Context::If not wrapped in another context");
-                        };
-
-                        parent_instructions.push(BasicAstInstruction::IfThenElse(
+                pop_context!(context_stack, instructions, {
+                    Context::If(condition) => {
+                        BasicAstInstruction::IfThenElse(
                             condition,
                             BasicAstBlock { instructions },
                             BasicAstBlock::default(),
-                        ));
-                    }
-                    (instructions, Context::IfElse(condition, true_branch)) => {
-                        let Some((ref mut parent_instructions, _)) = context_stack.last_mut()
-                        else {
-                            unreachable!("Context::IfElse not wrapped in another context");
-                        };
-
-                        parent_instructions.push(BasicAstInstruction::IfThenElse(
+                        )
+                    },
+                    Context::IfElse(condition, true_branch) => {
+                        BasicAstInstruction::IfThenElse(
                             condition,
                             true_branch,
                             BasicAstBlock { instructions },
-                        ));
+                        )
                     }
                     _ => {
                         return Err(ParseError::UnexpectedToken(BasicToken::EndIf));
                     }
-                }
+                });
             }
             // == For loops ==
             [BasicToken::For, BasicToken::Name(variable), BasicToken::Assign, ..] => {
@@ -118,37 +142,96 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
 
                 context_stack.push((Vec::new(), Context::For(variable.clone(), start, end, step)));
             }
-            [BasicToken::Next, BasicToken::Name(variable), ..] => match context_stack.pop() {
-                Some((instructions, Context::For(expected_variable, start, end, step))) => {
-                    tokens.take(2);
+            [BasicToken::Next, BasicToken::Name(variable), ..] => {
+                tokens.take(2);
 
-                    let Some((ref mut parent_instructions, _)) = context_stack.last_mut() else {
-                        unreachable!("Context::For not wrapped in another context");
-                    };
+                pop_context!(context_stack, instructions, {
+                    Context::For(expected_variable, start, end, step) => {
+                        if *variable != expected_variable {
+                            return Err(ParseError::WrongForVariable(
+                                expected_variable,
+                                variable.clone(),
+                            ));
+                        }
 
-                    if *variable != expected_variable {
-                        return Err(ParseError::WrongForVariable(
-                            expected_variable,
-                            variable.clone(),
-                        ));
+                        BasicAstInstruction::For {
+                            variable: expected_variable,
+                            start,
+                            end,
+                            step,
+                            instructions: BasicAstBlock::new(instructions),
+                        }
                     }
+                    _ => {
+                        return Err(ParseError::UnexpectedToken(BasicToken::Next));
+                    }
+                });
+            }
+            // == While loops ==
+            [BasicToken::While, ..] => {
+                tokens.take(1);
+                let condition = parse_expression(&mut tokens)?;
+                expect_next_token(&tokens, &BasicToken::NewLine)?;
 
-                    parent_instructions.push(BasicAstInstruction::For {
-                        variable: expected_variable,
-                        start,
-                        end,
-                        step,
-                        instructions: BasicAstBlock::new(instructions),
-                    });
-                }
-                Some((_instructions, _context)) => {
-                    eprintln!("NEXT outside of loop");
-                    return Err(ParseError::UnexpectedToken(BasicToken::Next));
-                }
-                None => {
-                    unreachable!("Empty context stack");
-                }
-            },
+                context_stack.push((Vec::new(), Context::While(condition)));
+            }
+            [BasicToken::Do, BasicToken::While, ..] => {
+                tokens.take(2);
+                let condition = parse_expression(&mut tokens)?;
+                expect_next_token(&tokens, &BasicToken::NewLine)?;
+
+                context_stack.push((Vec::new(), Context::DoWhile(condition)));
+            }
+            [BasicToken::Do, ..] => {
+                tokens.take(1);
+                context_stack.push((Vec::new(), Context::Do));
+                expect_next_token(&tokens, &BasicToken::NewLine)?;
+            }
+
+            [BasicToken::Wend, ..] => {
+                tokens.take(1);
+
+                pop_context!(context_stack, instructions, {
+                    Context::While(condition) => {
+                        BasicAstInstruction::While(condition, BasicAstBlock::new(instructions))
+                    },
+                    _ => {
+                        return Err(ParseError::UnexpectedToken(BasicToken::Wend));
+                    }
+                });
+            }
+            [BasicToken::Loop, BasicToken::While, ..] => {
+                tokens.take(2);
+
+                let condition = parse_expression(&mut tokens)?;
+
+                pop_context!(context_stack, instructions, {
+                    Context::Do => {
+                        BasicAstInstruction::DoWhile(condition, BasicAstBlock::new(instructions))
+                    },
+                    Context::DoWhile(_) => {
+                        return Err(ParseError::UnexpectedToken(BasicToken::While));
+                    },
+                    _ => {
+                        return Err(ParseError::UnexpectedToken(BasicToken::Loop));
+                    }
+                });
+            }
+            [BasicToken::Loop, ..] => {
+                tokens.take(1);
+
+                pop_context!(context_stack, instructions, {
+                    Context::DoWhile(condition) => {
+                        BasicAstInstruction::DoWhile(condition, BasicAstBlock::new(instructions))
+                    },
+                    Context::Do => {
+                        return Err(ParseError::MissingToken(BasicToken::While));
+                    },
+                    _ => {
+                        return Err(ParseError::UnexpectedToken(BasicToken::Wend));
+                    }
+                });
+            }
 
             // == Goto ==
             [BasicToken::Goto, BasicToken::Integer(label), ..] => {
@@ -268,6 +351,12 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
             }
             Context::For(_, _, _, _) => {
                 return Err(ParseError::MissingToken(BasicToken::Next));
+            }
+            Context::While(_) => {
+                return Err(ParseError::MissingToken(BasicToken::Wend));
+            }
+            Context::Do | Context::DoWhile(_) => {
+                return Err(ParseError::MissingToken(BasicToken::Loop));
             }
             Context::Main => {
                 unreachable!("There cannot be another context below the main context");

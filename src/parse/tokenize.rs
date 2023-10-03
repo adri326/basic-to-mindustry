@@ -15,6 +15,10 @@ pub enum BasicToken {
     To,
     Step,
     Next,
+    While,
+    Wend,
+    Do,
+    Loop,
     LabelEnd,
     OpenParen,
     CloseParen,
@@ -75,14 +79,14 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
     let match_let = Regex::new(r"(?i)^let").unwrap();
     let match_jump = Regex::new(r"(?i)^go\s*to").unwrap();
     let match_word =
-        Regex::new(r"(?i)^(?:if|then|else|end\s?if|print|for|to|step|next)(?:\s|$)").unwrap();
+        Regex::new(r"(?i)^(?:if|then|else|end\s?(?:if|while)|print|for|to|step|next|while|do|wend|loop)(?:\s|$)").unwrap();
     let match_space = Regex::new(r"^\s+").unwrap();
     let match_variable = Regex::new(r"^@?[a-zA-Z_][a-zA-Z_0-9]*").unwrap();
     let match_float = Regex::new(r"^[0-9]*\.[0-9]+").unwrap();
     let match_integer = Regex::new(r"^[0-9]+").unwrap();
     let match_assign = Regex::new(r"^=").unwrap();
     let match_comma = Regex::new(r"^,").unwrap();
-    let match_operator = Regex::new(r"^(?:[+\-*/%]|[<>]=?|[!=]=|<<|>>)").unwrap();
+    let match_operator = Regex::new(r"^(?:[+\-*/%]|[<>]=?|[!=]=|<>|<<|>>)").unwrap();
     let match_label_end = Regex::new(r"^:").unwrap();
     let match_paren = Regex::new(r"^(?:\(|\))").unwrap();
     // TODO: handle escapes
@@ -111,6 +115,11 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
                     "to" => BasicToken::To,
                     "step" => BasicToken::Step,
                     "next" => BasicToken::Next,
+                    "while" => BasicToken::While,
+                    "do" => BasicToken::Do,
+                    "wend" => BasicToken::Wend,
+                    "end while" => BasicToken::Wend,
+                    "loop" => BasicToken::Loop,
                     _ => unreachable!("{}", word),
                 }),
                 match_variable(name) => (BasicToken::Name(name.to_string())),
@@ -130,7 +139,7 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
                     "<<" => Operator::LShift,
                     ">>" => Operator::RShift,
                     "==" => Operator::Eq,
-                    "!=" => Operator::Neq,
+                    "<>" | "!=" => Operator::Neq,
                     _ => unreachable!(),
                 })),
                 match_assign => (BasicToken::Assign),

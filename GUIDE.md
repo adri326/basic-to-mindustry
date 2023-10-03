@@ -157,4 +157,51 @@ END IF
 
 ## Loops
 
-<!-- TODO: finish implementing WHILE..WEND and DO..LOOP -->
+MinBasic offers multiple ways to execute a block of code multiple times, on top of manually jumping to an earlier point in the code:
+
+### `FOR` loops
+
+`FOR` loops allow you to run a piece of code for a fixed amount of iterations, incrementing a variable when doing so.
+The syntax is as follows:
+
+```basic
+REM Prints the numbers from 1 to 10, with 10 included
+FOR x = 1 TO 10
+    PRINT x
+NEXT x
+```
+
+The `FOR` keyword expects a variable name (here `x`), an initial value (here `1`), a maximal value (here `10`), and optionally an increment, which defaults to `1`.
+To specify the increment, append `STEP n` to the `FOR` instruction: `FOR x = 1 TO 10 STEP 2`.
+
+The loop body is then executed, until the `NEXT` statement is reached, telling the loop to jump to the beginning, increment the variable, compare it and possibly execute the loop body.
+
+If the initial value is bigger than the maximal value, then the loop body will not be executed.
+
+### `WHILE` loops
+
+`WHILE` loops allow you to execute a piece of code any amount of time, until a condition turns false.
+The syntax is as follows:
+
+```basic
+REM Divides x until it is an odd number
+WHILE x % 2 == 0
+    x = x / 2
+WEND
+```
+
+If the condition (here `x % 2 == 0`) yields false on the first iteration, then the loop body will not be executed.
+
+`WEND` may be replaced with `END WHILE`, similar to VisualBasic.
+
+### `DO WHILE` loops
+
+Much like `WHILE` loops, `DO WHILE` loops execute a piece of code until a condition turns false.
+The difference, however, is that the loop body will be executed at least once:
+
+```basic
+REM Will repeatedly set x to 3*x+1, until it becomes an even number
+DO WHILE x % 2 == 1
+    x = 3*x + 1
+LOOP
+```
