@@ -66,12 +66,24 @@ fn translate_expression(
             let mut right = translate_expression(right.as_ref(), namer, right_name.clone());
 
             res.append(&mut right);
-            res.push(MindustryOperation::Operator(
-                target_name,
-                *op,
-                Operand::Variable(left_name),
-                Operand::Variable(right_name),
-            ));
+
+            match op {
+                BasicOperator::Operator(op) => {
+                    res.push(MindustryOperation::Operator(
+                        target_name,
+                        *op,
+                        Operand::Variable(left_name),
+                        Operand::Variable(right_name),
+                    ));
+                }
+                BasicOperator::Sensor => {
+                    res.push(MindustryOperation::Sensor {
+                        out_name: target_name,
+                        object: Operand::Variable(left_name),
+                        key: Operand::Variable(right_name),
+                    });
+                }
+            }
 
             res
         }
@@ -143,8 +155,8 @@ pub fn translate_ast(
                     String::from("__gosub_retaddr"),
                     Operator::Mul,
                     Operand::Variable(String::from("__gosub_retaddr")),
-                    Operand::Integer(MAX_INSTRUCTION_COUNT as i64))
-                );
+                    Operand::Integer(MAX_INSTRUCTION_COUNT as i64),
+                ));
                 res.push(MindustryOperation::Operator(
                     String::from("__gosub_retaddr"),
                     Operator::Add,
@@ -159,20 +171,20 @@ pub fn translate_ast(
                     String::from("__return"),
                     Operator::Mod,
                     Operand::Variable(String::from("__gosub_retaddr")),
-                    Operand::Integer(MAX_INSTRUCTION_COUNT as i64))
-                );
+                    Operand::Integer(MAX_INSTRUCTION_COUNT as i64),
+                ));
                 res.push(MindustryOperation::Operator(
                     String::from("__gosub_retaddr"),
                     Operator::IDiv,
                     Operand::Variable(String::from("__gosub_retaddr")),
-                    Operand::Integer(MAX_INSTRUCTION_COUNT as i64))
-                );
+                    Operand::Integer(MAX_INSTRUCTION_COUNT as i64),
+                ));
                 res.push(MindustryOperation::Operator(
                     String::from("@counter"),
                     Operator::Add,
                     Operand::Variable(String::from("__return")),
-                    Operand::Integer(1))
-                );
+                    Operand::Integer(1),
+                ));
                 // Add a guard at the beginning of the program, to clear out the return address
                 has_return = true;
             }
@@ -414,7 +426,10 @@ pub fn translate_ast(
     }
 
     if has_return {
-        res.0.insert(0, MindustryOperation::Set(String::from("__gosub_retaddr"), Operand::Integer(0)));
+        res.0.insert(
+            0,
+            MindustryOperation::Set(String::from("__gosub_retaddr"), Operand::Integer(0)),
+        );
     }
 
     res

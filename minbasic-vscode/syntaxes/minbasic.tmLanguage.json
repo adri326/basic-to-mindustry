@@ -23,7 +23,7 @@
         },
         {
             "comment": "Keyword",
-            "match": "(?i)(\\b((END ?)?IF|(END )?SELECT|(RESUME )?NEXT|CASE|CLOSE|DO|ELSE|FOR|GOSUB|GOTO|LOOP|ON|OPEN|RETURN|THEN|TO|UNTIL|WHILE)\\b)",
+            "match": "(?i)(\\b((END ?)?IF|(END )?SELECT|(RESUME )?NEXT|CASE|CLOSE|DO|ELSE|FOR|GOSUB|GOTO|LOOP|ON|RETURN|THEN|TO|WHILE|WEND|END)\\b)",
             "name": "keyword.control.minbasic"
         },
         {
@@ -33,7 +33,7 @@
         },
         {
             "comment": "Operator",
-            "match": "(?i)((\\+|=|<|>|<>|AND|OR))",
+            "match": "(?i)(([+\\-*/\\.%]|[!=]=|<[=<]?|>[=>]?|<>|AND|OR))",
             "name": "keyword.operator.minbasic"
         },
         {

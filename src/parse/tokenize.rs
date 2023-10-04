@@ -31,7 +31,7 @@ pub enum BasicToken {
     Float(f64),
     Name(String),
     String(String),
-    Operator(Operator),
+    Operator(BasicOperator),
 }
 
 /// Transforms a raw string into a sequence of `BasicToken`s
@@ -90,7 +90,7 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
     let match_integer = Regex::new(r"^[0-9]+").unwrap();
     let match_assign = Regex::new(r"^=").unwrap();
     let match_comma = Regex::new(r"^,").unwrap();
-    let match_operator = Regex::new(r"^(?:[+\-*/%]|//|[<>]=?|[!=]=|<>|<<|>>|&&|\|\|)").unwrap();
+    let match_operator = Regex::new(r"^(?:[+\-*/%\.]|//|[<>]=?|[!=]=|<>|<<|>>|&&|\|\|)").unwrap();
     let match_label_end = Regex::new(r"^:").unwrap();
     let match_paren = Regex::new(r"^(?:\(|\))").unwrap();
     // TODO: handle escapes
@@ -126,8 +126,8 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
                     "loop" => BasicToken::Loop,
                     "gosub" => BasicToken::GoSub,
                     "return" => BasicToken::Return,
-                    "and" => BasicToken::Operator(Operator::And),
-                    "or" => BasicToken::Operator(Operator::Or),
+                    "and" => BasicToken::Operator(Operator::And.into()),
+                    "or" => BasicToken::Operator(Operator::Or.into()),
                     _ => unreachable!("{}", word),
                 }),
                 match_end => (BasicToken::End),
@@ -136,22 +136,23 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
                 match_integer(int) => (BasicToken::Integer(int.parse().unwrap())),
                 match_comma => (BasicToken::Comma),
                 match_operator(op) => (BasicToken::Operator(match op {
-                    "+" => Operator::Add,
-                    "-" => Operator::Sub,
-                    "*" => Operator::Mul,
-                    "//" => Operator::IDiv,
-                    "/" => Operator::Div,
-                    "%" => Operator::Mod,
-                    "<" => Operator::Lt,
-                    "<=" => Operator::Lte,
-                    ">" => Operator::Gt,
-                    ">=" => Operator::Gte,
-                    "<<" => Operator::LShift,
-                    ">>" => Operator::RShift,
-                    "==" => Operator::Eq,
-                    "<>" | "!=" => Operator::Neq,
-                    "&&" => Operator::And,
-                    "||" => Operator::Or,
+                    "+" => Operator::Add.into(),
+                    "-" => Operator::Sub.into(),
+                    "*" => Operator::Mul.into(),
+                    "//" => Operator::IDiv.into(),
+                    "/" => Operator::Div.into(),
+                    "%" => Operator::Mod.into(),
+                    "<" => Operator::Lt.into(),
+                    "<=" => Operator::Lte.into(),
+                    ">" => Operator::Gt.into(),
+                    ">=" => Operator::Gte.into(),
+                    "<<" => Operator::LShift.into(),
+                    ">>" => Operator::RShift.into(),
+                    "==" => Operator::Eq.into(),
+                    "<>" | "!=" => Operator::Neq.into(),
+                    "&&" => Operator::And.into(),
+                    "||" => Operator::Or.into(),
+                    "." => BasicOperator::Sensor,
                     _ => unreachable!(),
                 })),
                 match_assign => (BasicToken::Assign),

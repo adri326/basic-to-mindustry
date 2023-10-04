@@ -21,6 +21,30 @@ pub enum Operator {
     Or,
 }
 
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+pub enum BasicOperator {
+    Operator(Operator),
+    Sensor,
+}
+
+impl BasicOperator {
+    pub(crate) fn precedence(self) -> u8 {
+        match self {
+            Self::Sensor => 20,
+            Self::Operator(op) => op.precedence(),
+        }
+    }
+
+    pub(crate) fn from_fn_name(raw: &str) -> Option<Self> {
+        match raw {
+            "max" => Some(Self::Operator(Operator::Max)),
+            "min" => Some(Self::Operator(Operator::Min)),
+            "pow" => Some(Self::Operator(Operator::Pow)),
+            _ => None,
+        }
+    }
+}
+
 impl Operator {
     pub(crate) fn precedence(self) -> u8 {
         match self {
@@ -33,14 +57,22 @@ impl Operator {
             _ => 128,
         }
     }
+}
 
-    pub(crate) fn from_fn_name(raw: &str) -> Option<Self> {
-        match raw {
-            "max" => Some(Self::Max),
-            "min" => Some(Self::Min),
-            "pow" => Some(Self::Pow),
-            _ => None,
+impl TryFrom<BasicOperator> for Operator {
+    type Error = ();
+
+    fn try_from(value: BasicOperator) -> Result<Self, Self::Error> {
+        match value {
+            BasicOperator::Operator(op) => Ok(op),
+            BasicOperator::Sensor => Err(()),
         }
+    }
+}
+
+impl From<Operator> for BasicOperator {
+    fn from(value: Operator) -> Self {
+        Self::Operator(value)
     }
 }
 

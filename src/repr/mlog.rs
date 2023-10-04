@@ -40,6 +40,8 @@ pub enum MindustryOperation {
     End,
     Operator(String, Operator, Operand, Operand),
     UnaryOperator(String, UnaryOperator, Operand),
+    /// Copies the value of rhs into lhs
+    Set(String, Operand),
 
     /// Reads the value at the `index`-th place in `cell`
     Read {
@@ -60,8 +62,14 @@ pub enum MindustryOperation {
     /// Available to world processors only - flushes the print buffer to a global buffer
     WorldPrintFlush(WorldPrintFlush),
 
-    // TODO: add RandOperator
-    Set(String, Operand),
+    /// Reads `key` from `object` and puts its result into `out_name`.
+    /// `object` may be a connection, an entity, a block, a unit type, etc.
+    Sensor {
+        out_name: String,
+        object: Operand,
+        key: Operand,
+    },
+
     /// A generic operation, with the following invariants:
     /// - all of the operands are read-only
     /// - there is no external dependency to other variables
@@ -74,63 +82,78 @@ pub enum MindustryOperation {
     GenericMut(String, String, Vec<Operand>),
 }
 
+macro_rules! impl_operands {
+    (
+        both: {
+            $( $pattern:pat => $value:expr ),* $(,)?
+        },
+        mut: {
+            $( $pattern_mut:pat => $value_mut:expr ),* $(,)?
+        },
+        ref: {
+            $( $pattern_ref:pat => $value_ref:expr ),* $(,)?
+        } $(,)?
+    ) => {
+        impl MindustryOperation {
+            pub(crate) fn operands(&self) -> Vec<&Operand> {
+                match self {
+                    $(
+                        $pattern => $value
+                    ),* ,
+                    $(
+                        $pattern_ref => $value_ref
+                    ),*
+                }
+            }
+
+            pub(crate) fn operands_mut(&mut self) -> Vec<&mut Operand> {
+                match self {
+                    $(
+                        $pattern => $value
+                    ),* ,
+                    $(
+                        $pattern_mut => $value_mut
+                    ),*
+                }
+            }
+        }
+    }
+}
+
+impl_operands!(
+    both: {
+        Self::Jump(_) | Self::JumpLabel(_) | Self::End => vec![],
+        Self::JumpIf(_label, _operator, lhs, rhs) => vec![lhs, rhs],
+        Self::Operator(_target, _operator, lhs, rhs) => vec![lhs, rhs],
+        Self::UnaryOperator(_target, _operator, value) => vec![value],
+        Self::Set(_target, value) => vec![value],
+        Self::PrintFlush(cell) => vec![cell],
+        Self::WorldPrintFlush(wpf) => match wpf {
+            WorldPrintFlush::Notify => vec![],
+            WorldPrintFlush::Mission => vec![],
+            WorldPrintFlush::Announce(time) => vec![time],
+            WorldPrintFlush::Toast(time) => vec![time],
+        },
+        Self::Print(operand) => vec![operand],
+        Self::Read {
+            out_name: _,
+            cell,
+            index,
+        } => vec![cell, index],
+        Self::Write { value, cell, index } => vec![value, cell, index],
+        Self::Sensor { out_name: _, object, key } => vec![object, key],
+    },
+    mut: {
+        Self::Generic(_name, operands) => operands.iter_mut().collect::<Vec<_>>(),
+        Self::GenericMut(_name, _out_name, operands) => operands.iter_mut().collect::<Vec<_>>(),
+    },
+    ref: {
+        Self::Generic(_name, operands) => operands.iter().collect::<Vec<_>>(),
+        Self::GenericMut(_name, _out_name, operands) => operands.iter().collect::<Vec<_>>(),
+    }
+);
+
 impl MindustryOperation {
-    pub(crate) fn operands(&self) -> Box<[&Operand]> {
-        match self {
-            Self::Jump(_) | Self::JumpLabel(_) | Self::End => Box::new([]),
-            Self::JumpIf(_label, _operator, lhs, rhs) => Box::new([lhs, rhs]),
-            Self::Operator(_target, _operator, lhs, rhs) => Box::new([lhs, rhs]),
-            Self::UnaryOperator(_target, _operator, value) => Box::new([value]),
-            Self::Set(_target, value) => Box::new([value]),
-            Self::Generic(_name, operands) => {
-                operands.iter().collect::<Vec<_>>().into_boxed_slice()
-            }
-            Self::GenericMut(_name, _out_name, operands) => {
-                operands.iter().collect::<Vec<_>>().into_boxed_slice()
-            }
-            Self::PrintFlush(cell) => Box::new([cell]),
-            Self::WorldPrintFlush(wpf) => match wpf {
-                WorldPrintFlush::Notify => Box::new([]),
-                WorldPrintFlush::Mission => Box::new([]),
-                WorldPrintFlush::Announce(time) => Box::new([time]),
-                WorldPrintFlush::Toast(time) => Box::new([time]),
-            },
-            Self::Print(operand) => Box::new([operand]),
-            Self::Read {
-                out_name: _,
-                cell,
-                index,
-            } => Box::new([cell, index]),
-            Self::Write { value, cell, index } => Box::new([value, cell, index]),
-        }
-    }
-
-    pub(crate) fn operands_mut(&mut self) -> Vec<&mut Operand> {
-        match self {
-            Self::Jump(_) | Self::JumpLabel(_) | Self::End => vec![],
-            Self::JumpIf(_label, _operator, lhs, rhs) => vec![lhs, rhs],
-            Self::Operator(_target, _operator, lhs, rhs) => vec![lhs, rhs],
-            Self::UnaryOperator(_target, _operator, value) => vec![value],
-            Self::Set(_target, value) => vec![value],
-            Self::Generic(_name, operands) => operands.iter_mut().collect::<Vec<_>>(),
-            Self::GenericMut(_name, _out_name, operands) => operands.iter_mut().collect::<Vec<_>>(),
-            Self::PrintFlush(cell) => vec![cell],
-            Self::WorldPrintFlush(wpf) => match wpf {
-                WorldPrintFlush::Notify => vec![],
-                WorldPrintFlush::Mission => vec![],
-                WorldPrintFlush::Announce(time) => vec![time],
-                WorldPrintFlush::Toast(time) => vec![time],
-            },
-            Self::Print(operand) => vec![operand],
-            Self::Read {
-                out_name: _,
-                cell,
-                index,
-            } => vec![cell, index],
-            Self::Write { value, cell, index } => vec![value, cell, index],
-        }
-    }
-
     pub(crate) fn mutates(&self, var_name: &str) -> bool {
         match self {
             Self::JumpLabel(_)
@@ -152,6 +175,11 @@ impl MindustryOperation {
                 out_name,
                 cell: _,
                 index: _,
+            }
+            | Self::Sensor {
+                out_name,
+                object: _,
+                key: _,
             } => out_name == var_name,
 
             Self::Print(_) | Self::PrintFlush(_) | Self::WorldPrintFlush(_) => {
@@ -176,6 +204,11 @@ impl MindustryOperation {
                 value: _,
                 cell: _,
                 index: _,
+            }
+            | Self::Sensor {
+                out_name: _,
+                object: _,
+                key: _,
             }
             | Self::Print(_)
             | Self::PrintFlush(_)

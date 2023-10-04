@@ -403,7 +403,7 @@ macro_rules! impl_op_basic_ast_expression {
             type Output = BasicAstExpression;
 
             fn $fn_name(self, other: Self) -> Self {
-                Self::Binary($self_op, Box::new(self), Box::new(other))
+                Self::Binary($self_op.into(), Box::new(self), Box::new(other))
             }
         }
     };
@@ -469,7 +469,7 @@ pub(crate) fn parse_expression(
                         ))
                     }
                 } else if let Some(binary_operator) =
-                    Operator::from_fn_name(fn_name_lowercase.as_str())
+                    BasicOperator::from_fn_name(fn_name_lowercase.as_str())
                 {
                     if arguments.len() != 2 {
                         Err(ParseError::InvalidArgumentCount(

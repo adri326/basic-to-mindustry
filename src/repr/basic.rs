@@ -6,7 +6,11 @@ pub enum BasicAstExpression {
     Float(f64),
     Variable(String),
     String(String),
-    Binary(Operator, Box<BasicAstExpression>, Box<BasicAstExpression>),
+    Binary(
+        BasicOperator,
+        Box<BasicAstExpression>,
+        Box<BasicAstExpression>,
+    ),
     Unary(UnaryOperator, Box<BasicAstExpression>),
 }
 

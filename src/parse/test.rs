@@ -8,7 +8,7 @@ fn test_tokenize_basic() {
         vec![
             BasicToken::NewLine,
             BasicToken::Name(String::from("hello")),
-            BasicToken::Operator(Operator::Add),
+            BasicToken::Operator(Operator::Add.into()),
             BasicToken::Name(String::from("world")),
         ],
     );
@@ -20,7 +20,7 @@ fn test_tokenize_basic() {
             BasicToken::Name(String::from("thing")),
             BasicToken::Assign,
             BasicToken::Name(String::from("thing")),
-            BasicToken::Operator(Operator::Div),
+            BasicToken::Operator(Operator::Div.into()),
             BasicToken::Integer(2)
         ],
     );
@@ -33,7 +33,7 @@ fn test_tokenize_basic() {
             BasicToken::Name(String::from("thing")),
             BasicToken::Assign,
             BasicToken::Name(String::from("thing")),
-            BasicToken::Operator(Operator::Add),
+            BasicToken::Operator(Operator::Add.into()),
             BasicToken::Float(0.5),
             BasicToken::NewLine,
             BasicToken::Goto,
@@ -51,7 +51,7 @@ fn test_tokenize_basic() {
             BasicToken::NewLine,
             BasicToken::If,
             BasicToken::Name(String::from("x")),
-            BasicToken::Operator(Operator::Gt),
+            BasicToken::Operator(Operator::Gt.into()),
             BasicToken::Integer(0),
             BasicToken::Then,
             BasicToken::NewLine,
@@ -70,7 +70,7 @@ fn test_tokenize_basic() {
             BasicToken::NewLine,
             BasicToken::If,
             BasicToken::Name(String::from("x")),
-            BasicToken::Operator(Operator::Gt),
+            BasicToken::Operator(Operator::Gt.into()),
             BasicToken::Integer(0),
             BasicToken::Then,
             BasicToken::NewLine,
@@ -147,11 +147,11 @@ fn test_operator_precedence() {
     assert_eq!(
         test_parse([
             BasicToken::Name(String::from("hello")),
-            BasicToken::Operator(Operator::Add),
+            BasicToken::Operator(Operator::Add.into()),
             BasicToken::Integer(1),
         ]),
         BasicAstExpression::Binary(
-            Operator::Add,
+            Operator::Add.into(),
             Box::new(BasicAstExpression::Variable(String::from("hello"))),
             Box::new(BasicAstExpression::Integer(1)),
         )
@@ -160,16 +160,16 @@ fn test_operator_precedence() {
     assert_eq!(
         test_parse([
             BasicToken::Name(String::from("hello")),
-            BasicToken::Operator(Operator::Add),
+            BasicToken::Operator(Operator::Add.into()),
             BasicToken::Integer(2),
-            BasicToken::Operator(Operator::Mul),
+            BasicToken::Operator(Operator::Mul.into()),
             BasicToken::Name(String::from("world")),
         ]),
         BasicAstExpression::Binary(
-            Operator::Add,
+            Operator::Add.into(),
             Box::new(BasicAstExpression::Variable(String::from("hello"))),
             Box::new(BasicAstExpression::Binary(
-                Operator::Mul,
+                Operator::Mul.into(),
                 Box::new(BasicAstExpression::Integer(2)),
                 Box::new(BasicAstExpression::Variable(String::from("world"))),
             )),
@@ -179,15 +179,15 @@ fn test_operator_precedence() {
     assert_eq!(
         test_parse([
             BasicToken::Name(String::from("hello")),
-            BasicToken::Operator(Operator::Mul),
+            BasicToken::Operator(Operator::Mul.into()),
             BasicToken::Integer(2),
-            BasicToken::Operator(Operator::Add),
+            BasicToken::Operator(Operator::Add.into()),
             BasicToken::Name(String::from("world")),
         ]),
         BasicAstExpression::Binary(
-            Operator::Add,
+            Operator::Add.into(),
             Box::new(BasicAstExpression::Binary(
-                Operator::Mul,
+                Operator::Mul.into(),
                 Box::new(BasicAstExpression::Variable(String::from("hello"))),
                 Box::new(BasicAstExpression::Integer(2)),
             )),
@@ -198,18 +198,18 @@ fn test_operator_precedence() {
     assert_eq!(
         test_parse([
             BasicToken::Name(String::from("hello")),
-            BasicToken::Operator(Operator::Mul),
+            BasicToken::Operator(Operator::Mul.into()),
             BasicToken::OpenParen,
             BasicToken::Integer(2),
-            BasicToken::Operator(Operator::Add),
+            BasicToken::Operator(Operator::Add.into()),
             BasicToken::Name(String::from("world")),
             BasicToken::CloseParen,
         ]),
         BasicAstExpression::Binary(
-            Operator::Mul,
+            Operator::Mul.into(),
             Box::new(BasicAstExpression::Variable(String::from("hello"))),
             Box::new(BasicAstExpression::Binary(
-                Operator::Add,
+                Operator::Add.into(),
                 Box::new(BasicAstExpression::Integer(2)),
                 Box::new(BasicAstExpression::Variable(String::from("world"))),
             )),
@@ -219,18 +219,18 @@ fn test_operator_precedence() {
     assert_eq!(
         test_parse([
             BasicToken::Name(String::from("hello")),
-            BasicToken::Operator(Operator::Add),
+            BasicToken::Operator(Operator::Add.into()),
             BasicToken::OpenParen,
             BasicToken::Name(String::from("world")),
-            BasicToken::Operator(Operator::Mul),
+            BasicToken::Operator(Operator::Mul.into()),
             BasicToken::Integer(2),
             BasicToken::CloseParen,
         ]),
         BasicAstExpression::Binary(
-            Operator::Add,
+            Operator::Add.into(),
             Box::new(BasicAstExpression::Variable(String::from("hello"))),
             Box::new(BasicAstExpression::Binary(
-                Operator::Mul,
+                Operator::Mul.into(),
                 Box::new(BasicAstExpression::Variable(String::from("world"))),
                 Box::new(BasicAstExpression::Integer(2)),
             )),
@@ -240,7 +240,7 @@ fn test_operator_precedence() {
     assert_eq!(
         test_err([
             BasicToken::Name(String::from("hello")),
-            BasicToken::Operator(Operator::Add),
+            BasicToken::Operator(Operator::Add.into()),
         ]),
         ParseError::ExpectedOperand
     );
@@ -248,10 +248,10 @@ fn test_operator_precedence() {
     assert_eq!(
         test_err([
             BasicToken::Name(String::from("hello")),
-            BasicToken::Operator(Operator::Add),
+            BasicToken::Operator(Operator::Add.into()),
             BasicToken::OpenParen,
             BasicToken::Name(String::from("world")),
-            BasicToken::Operator(Operator::Mul),
+            BasicToken::Operator(Operator::Mul.into()),
             BasicToken::Integer(2),
         ]),
         ParseError::MissingToken(BasicToken::CloseParen)
@@ -260,16 +260,16 @@ fn test_operator_precedence() {
     assert_eq!(
         test_err([
             BasicToken::Name(String::from("hello")),
-            BasicToken::Operator(Operator::Add),
-            BasicToken::Operator(Operator::Mul),
+            BasicToken::Operator(Operator::Add.into()),
+            BasicToken::Operator(Operator::Mul.into()),
         ]),
-        ParseError::UnexpectedToken(BasicToken::Operator(Operator::Mul))
+        ParseError::UnexpectedToken(BasicToken::Operator(Operator::Mul.into()))
     );
 
     assert!(matches!(
         test_err([
             BasicToken::Name(String::from("hello")),
-            BasicToken::Operator(Operator::Add),
+            BasicToken::Operator(Operator::Add.into()),
             BasicToken::OpenParen,
         ]),
         ParseError::ExpectedOperand | ParseError::MissingToken(BasicToken::CloseParen)
@@ -278,7 +278,7 @@ fn test_operator_precedence() {
     assert!(matches!(
         test_err([
             BasicToken::Name(String::from("hello")),
-            BasicToken::Operator(Operator::Add),
+            BasicToken::Operator(Operator::Add.into()),
             BasicToken::OpenParen,
             BasicToken::CloseParen
         ]),
@@ -286,8 +286,11 @@ fn test_operator_precedence() {
     ));
 
     assert_eq!(
-        test_err([BasicToken::Operator(Operator::Add), BasicToken::Integer(2)]),
-        ParseError::UnexpectedToken(BasicToken::Operator(Operator::Add))
+        test_err([
+            BasicToken::Operator(Operator::Add.into()),
+            BasicToken::Integer(2)
+        ]),
+        ParseError::UnexpectedToken(BasicToken::Operator(Operator::Add.into()))
     );
 }
 
@@ -321,7 +324,7 @@ fn test_ast_basics() {
         test_build_ast("IF X < 0 THEN\nX = 0-X\nEND IF"),
         BasicAstBlock::new([BasicAstInstruction::IfThenElse(
             BasicAstExpression::Binary(
-                Operator::Lt,
+                Operator::Lt.into(),
                 Box::new(BasicAstExpression::Variable(String::from("X"))),
                 Box::new(BasicAstExpression::Integer(0))
             ),

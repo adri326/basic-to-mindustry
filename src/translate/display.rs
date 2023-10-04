@@ -120,6 +120,9 @@ impl std::fmt::Display for MindustryProgram {
                         WorldPrintFlush::Toast(time) => writeln!(f, "message toast {}", time)?,
                     };
                 }
+                MindustryOperation::Sensor { out_name, object, key } => {
+                    writeln!(f, "sensor {out_name} {object} {key}")?;
+                }
             }
         }
 
