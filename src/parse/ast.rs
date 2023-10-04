@@ -33,7 +33,10 @@ macro_rules! pop_context {
     }
 }
 
-pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock, ParseError> {
+pub fn build_ast(
+    tokens: &[(BasicToken, Position)],
+    config: &Config,
+) -> Result<BasicAstBlock, ParseError> {
     enum Context {
         Main,
         If(BasicAstExpression),
@@ -58,7 +61,11 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
             unreachable!("Context stack got emptied!");
         };
 
-        match tokens.peek(3) {
+        let Some(position) = tokens.get(0).map(|pair| pair.1) else {
+            break;
+        };
+
+        match &drop_position(tokens.peek(3))[..] {
             [BasicToken::NewLine, BasicToken::Integer(label), ..] => {
                 tokens.take(2);
                 instructions.push(BasicAstInstruction::JumpLabel(label.to_string()));
@@ -92,7 +99,7 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                         ));
                     }
                     (_instructions, _) => {
-                        return Err(ParseError::UnexpectedToken(BasicToken::Else));
+                        return Err(ParseError::unexpected_token(BasicToken::Else, position));
                     }
                 }
             }
@@ -115,7 +122,7 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                         )
                     }
                     _ => {
-                        return Err(ParseError::UnexpectedToken(BasicToken::EndIf));
+                        return Err(ParseError::unexpected_token(BasicToken::EndIf, position));
                     }
                 });
             }
@@ -130,7 +137,7 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
 
                 let end = parse_expression(&mut tokens)?;
 
-                let step = if let Some(BasicToken::Step) = tokens.get(0) {
+                let step = if let Some((BasicToken::Step, _pos)) = tokens.get(0) {
                     tokens.take(1);
 
                     parse_expression(&mut tokens)?
@@ -148,9 +155,12 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                 pop_context!(context_stack, instructions, {
                     Context::For(expected_variable, start, end, step) => {
                         if *variable != expected_variable {
-                            return Err(ParseError::WrongForVariable(
-                                expected_variable,
-                                variable.clone(),
+                            return Err(ParseError::new(
+                                ParseErrorKind::WrongForVariable(
+                                    expected_variable,
+                                    variable.clone(),
+                                ),
+                                last_position(&tokens),
                             ));
                         }
 
@@ -163,7 +173,7 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                         }
                     }
                     _ => {
-                        return Err(ParseError::UnexpectedToken(BasicToken::Next));
+                        return Err(ParseError::unexpected_token(BasicToken::Next, position));
                     }
                 });
             }
@@ -196,7 +206,7 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                         BasicAstInstruction::While(condition, BasicAstBlock::new(instructions))
                     },
                     _ => {
-                        return Err(ParseError::UnexpectedToken(BasicToken::Wend));
+                        return Err(ParseError::unexpected_token(BasicToken::Wend, position));
                     }
                 });
             }
@@ -210,10 +220,10 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                         BasicAstInstruction::DoWhile(condition, BasicAstBlock::new(instructions))
                     },
                     Context::DoWhile(_) => {
-                        return Err(ParseError::UnexpectedToken(BasicToken::While));
+                        return Err(ParseError::unexpected_token(BasicToken::While, last_position(&tokens)));
                     },
                     _ => {
-                        return Err(ParseError::UnexpectedToken(BasicToken::Loop));
+                        return Err(ParseError::unexpected_token(BasicToken::Loop, position));
                     }
                 });
             }
@@ -225,10 +235,10 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                         BasicAstInstruction::DoWhile(condition, BasicAstBlock::new(instructions))
                     },
                     Context::Do => {
-                        return Err(ParseError::MissingToken(BasicToken::While));
+                        return Err(ParseError::missing_token(BasicToken::While, position.at_end()));
                     },
                     _ => {
-                        return Err(ParseError::UnexpectedToken(BasicToken::Wend));
+                        return Err(ParseError::unexpected_token(BasicToken::Wend, position));
                     }
                 });
             }
@@ -272,12 +282,12 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
 
                 let mut expressions = Vec::new();
 
-                if let Some(BasicToken::NewLine) = tokens.get(0) {
+                if let Some((BasicToken::NewLine, _)) = tokens.get(0) {
                     instructions.push(BasicAstInstruction::Print(expressions));
                 } else {
                     expressions.push((parse_expression(&mut tokens)?, false));
 
-                    while let Some(BasicToken::Comma) = tokens.get(0) {
+                    while let Some((BasicToken::Comma, _)) = tokens.get(0) {
                         tokens.take(1);
                         expressions.push((parse_expression(&mut tokens)?, false));
                     }
@@ -286,9 +296,9 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                 }
 
                 match tokens.get(0) {
-                    Some(BasicToken::NewLine) | None => {}
-                    Some(other) => {
-                        return Err(ParseError::UnexpectedToken(other.clone()));
+                    Some((BasicToken::NewLine, _)) | None => {}
+                    Some((other, position)) => {
+                        return Err(ParseError::unexpected_token(other.clone(), *position));
                     }
                 }
             }
@@ -296,46 +306,51 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                 tokens.take(2);
                 let mut arguments = Vec::new();
 
-                while tokens.get(0) != Some(&BasicToken::CloseParen) {
+                while tokens.get(0).map(|pair| &pair.0) != Some(&BasicToken::CloseParen) {
                     arguments.push(parse_expression(&mut tokens)?);
 
                     match tokens.get(0) {
-                        Some(BasicToken::Comma) => {
+                        Some((BasicToken::Comma, _)) => {
                             tokens.take(1);
                         }
-                        Some(BasicToken::CloseParen) => break,
-                        _ => return Err(ParseError::MissingToken(BasicToken::Comma)),
+                        Some((BasicToken::CloseParen, _)) => break,
+                        _ => {
+                            return Err(ParseError::missing_token(
+                                BasicToken::Comma,
+                                last_position(&tokens),
+                            ))
+                        }
                     }
                 }
 
-                match tokens.take(1) {
-                    [BasicToken::CloseParen] => {}
-                    [other] => {
-                        return Err(ParseError::UnexpectedToken(other.clone()));
-                    }
-                    _ => {
-                        return Err(ParseError::MissingToken(BasicToken::CloseParen));
-                    }
-                }
+                expect_next_token(&tokens, &BasicToken::CloseParen)?;
+                tokens.take(1);
+                let span = position.until(last_position(&tokens));
 
                 let lowercase_fn_name = fn_name.to_lowercase();
 
                 if let Some(translation_fn) = config.special_functions.get(&lowercase_fn_name) {
-                    instructions.push(translation_fn(arguments)?);
+                    instructions.push(translation_fn(arguments, span)?);
                 } else if let Some((_, mutating, n_args)) =
                     config.builtin_functions.get(&lowercase_fn_name)
                 {
                     if *mutating {
                         let BasicAstExpression::Variable(_) = &arguments[0] else {
-                            return Err(ParseError::ExpectedVariable);
+                            return Err(ParseError::new(
+                                ParseErrorKind::ExpectedVariable,
+                                last_position(&tokens),
+                            ));
                         };
                     }
 
                     if arguments.len() != *n_args {
-                        return Err(ParseError::InvalidArgumentCount(
-                            lowercase_fn_name,
-                            *n_args,
-                            arguments.len(),
+                        return Err(ParseError::new(
+                            ParseErrorKind::InvalidArgumentCount(
+                                lowercase_fn_name,
+                                *n_args,
+                                arguments.len(),
+                            ),
+                            span,
                         ));
                     }
 
@@ -353,7 +368,7 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
                     eprintln!("Lookahead: {:?}", tokens.peek(5));
                     eprintln!("Instructions: {:?}", instructions);
                 }
-                return Err(ParseError::UnexpectedToken(tokens[0].clone()));
+                return Err(ParseError::unexpected_token(tokens[0].clone().0, position));
             }
         }
     }
@@ -361,18 +376,20 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
     if context_stack.is_empty() {
         unreachable!("Empty context stack");
     } else if context_stack.len() > 1 {
+        let position = last_position(&tokens).at_end();
+
         match &context_stack.last().unwrap().1 {
             Context::If(_) | Context::IfElse(_, _) => {
-                return Err(ParseError::MissingToken(BasicToken::EndIf));
+                return Err(ParseError::missing_token(BasicToken::EndIf, position));
             }
             Context::For(_, _, _, _) => {
-                return Err(ParseError::MissingToken(BasicToken::Next));
+                return Err(ParseError::missing_token(BasicToken::Next, position));
             }
             Context::While(_) => {
-                return Err(ParseError::MissingToken(BasicToken::Wend));
+                return Err(ParseError::missing_token(BasicToken::Wend, position));
             }
             Context::Do | Context::DoWhile(_) => {
-                return Err(ParseError::MissingToken(BasicToken::Loop));
+                return Err(ParseError::missing_token(BasicToken::Loop, position));
             }
             Context::Main => {
                 unreachable!("There cannot be another context below the main context");
@@ -388,13 +405,19 @@ pub fn build_ast(tokens: &[BasicToken], config: &Config) -> Result<BasicAstBlock
 }
 
 /// Returns the index of the first token matching `needle`
-fn find_token_index(tokens: &[BasicToken], needle: BasicToken) -> Result<usize, ParseError> {
+fn find_token_index(
+    tokens: &[(BasicToken, Position)],
+    needle: BasicToken,
+) -> Result<usize, ParseError> {
     tokens
         .iter()
         .enumerate()
-        .find(|(_, t)| **t == needle)
+        .find(|(_index, (t, _pos))| *t == needle)
         .map(|(i, _)| i)
-        .ok_or(ParseError::MissingToken(needle))
+        .ok_or(ParseError::missing_token(
+            needle,
+            tokens.last().map(|pair| pair.1).unwrap_or_default(),
+        ))
 }
 
 macro_rules! impl_op_basic_ast_expression {
@@ -416,18 +439,23 @@ impl_op_basic_ast_expression!(std::ops::Mul, mul, Operator::Mul);
 impl_op_basic_ast_expression!(std::ops::Div, div, Operator::Div);
 
 pub(crate) fn parse_expression(
-    tokens: &mut Cursor<'_, BasicToken>,
+    tokens: &mut Cursor<'_, (BasicToken, Position)>,
 ) -> Result<BasicAstExpression, ParseError> {
     /// Returns the first non-newline token in `tokens`
-    fn peek(tokens: &[BasicToken]) -> Option<&BasicToken> {
-        tokens.iter().find(|t| !matches!(t, BasicToken::NewLine))
+    fn peek(tokens: &[(BasicToken, Position)]) -> Option<&BasicToken> {
+        tokens
+            .iter()
+            .find(|t| !matches!(t.0, BasicToken::NewLine))
+            .map(|pair| &pair.0)
     }
 
     /// Parses a single expression item
     fn parse_expression_item(
-        tokens: &mut Cursor<'_, BasicToken>,
+        tokens: &mut Cursor<'_, (BasicToken, Position)>,
     ) -> Result<BasicAstExpression, ParseError> {
-        match tokens.peek(2) {
+        let position = tokens.get(0).map(|pair| pair.1).unwrap_or_default();
+
+        match &drop_position(tokens.peek(2))[..] {
             [BasicToken::Integer(int), ..] => {
                 tokens.take(1);
                 Ok(BasicAstExpression::Integer(*int))
@@ -440,27 +468,31 @@ pub(crate) fn parse_expression(
                 tokens.take(2);
                 let fn_name_lowercase = fn_name.to_ascii_lowercase();
                 let mut arguments = Vec::new();
-                while tokens.get(0) != Some(&BasicToken::CloseParen) {
+                while tokens.get(0).map(|pair| &pair.0) != Some(&BasicToken::CloseParen) {
                     arguments.push(parse_expression(tokens)?);
 
-                    match tokens.get(0) {
+                    match tokens.get(0).map(|pair| &pair.0) {
                         Some(BasicToken::Comma) => {
                             tokens.take(1);
                         }
                         Some(BasicToken::CloseParen) => break,
-                        _ => return Err(ParseError::MissingToken(BasicToken::Comma)),
+                        _ => return Err(ParseError::missing_token(BasicToken::Comma, position)),
                     }
                 }
 
                 expect_next_token(tokens, &BasicToken::CloseParen)?;
                 tokens.take(1);
+                let span = position.until(last_position(tokens));
 
                 if let Ok(unary_operator) = UnaryOperator::try_from(fn_name_lowercase.as_str()) {
                     if arguments.len() != 1 {
-                        Err(ParseError::InvalidArgumentCount(
-                            fn_name_lowercase,
-                            1,
-                            arguments.len(),
+                        Err(ParseError::new(
+                            ParseErrorKind::InvalidArgumentCount(
+                                fn_name_lowercase,
+                                1,
+                                arguments.len(),
+                            ),
+                            span,
                         ))
                     } else {
                         Ok(BasicAstExpression::Unary(
@@ -472,10 +504,13 @@ pub(crate) fn parse_expression(
                     BasicOperator::from_fn_name(fn_name_lowercase.as_str())
                 {
                     if arguments.len() != 2 {
-                        Err(ParseError::InvalidArgumentCount(
-                            fn_name_lowercase,
-                            2,
-                            arguments.len(),
+                        Err(ParseError::new(
+                            ParseErrorKind::InvalidArgumentCount(
+                                fn_name_lowercase,
+                                2,
+                                arguments.len(),
+                            ),
+                            span,
                         ))
                     } else {
                         let mut iter = arguments.into_iter();
@@ -503,14 +538,20 @@ pub(crate) fn parse_expression(
             [BasicToken::OpenParen, ..] => {
                 tokens.take(1);
                 let res = parse_expression(tokens)?;
-                if let Some(BasicToken::CloseParen) = tokens.take(1).get(0) {
+                if let Some((BasicToken::CloseParen, _)) = tokens.take(1).get(0) {
                     Ok(res)
                 } else {
-                    Err(ParseError::MissingToken(BasicToken::CloseParen))
+                    Err(ParseError::missing_token(
+                        BasicToken::CloseParen,
+                        position.at_end(),
+                    ))
                 }
             }
-            [first, ..] => Err(ParseError::UnexpectedToken(first.clone())),
-            [] => Err(ParseError::ExpectedOperand),
+            [first, ..] => Err(ParseError::unexpected_token((**first).clone(), position)),
+            [] => Err(ParseError::new(
+                ParseErrorKind::ExpectedOperand,
+                last_position(&tokens).at_end(),
+            )),
         }
     }
 
@@ -519,7 +560,7 @@ pub(crate) fn parse_expression(
     ///
     /// See https://en.wikipedia.org/wiki/Operator-precedence_parser for more information
     fn parse_expression_main(
-        tokens: &mut Cursor<'_, BasicToken>,
+        tokens: &mut Cursor<'_, (BasicToken, Position)>,
         lhs: BasicAstExpression,
         min_precedence: u8,
     ) -> Result<BasicAstExpression, ParseError> {
@@ -552,12 +593,18 @@ pub(crate) fn parse_expression(
 }
 
 fn expect_next_token(
-    tokens: &Cursor<'_, BasicToken>,
+    tokens: &Cursor<'_, (BasicToken, Position)>,
     expected: &BasicToken,
 ) -> Result<(), ParseError> {
     match tokens.get(0) {
-        Some(token) if token == expected => Ok(()),
-        Some(token) => Err(ParseError::UnexpectedToken(token.clone())),
-        None => Err(ParseError::MissingToken(expected.clone())),
+        Some((token, _position)) if token == expected => Ok(()),
+        Some((token, position)) => Err(ParseError::new(
+            ParseErrorKind::UnexpectedToken(token.clone()),
+            *position,
+        )),
+        None => Err(ParseError::missing_token(
+            expected.clone(),
+            tokens.last().unwrap().1,
+        )),
     }
 }

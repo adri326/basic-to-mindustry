@@ -11,4 +11,5 @@ pub mod prelude {
     pub use crate::repr::basic::*;
     pub use crate::repr::mlog::*;
     pub use crate::repr::operator::*;
+    pub use crate::repr::position::*;
 }

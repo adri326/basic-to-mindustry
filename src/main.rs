@@ -28,8 +28,12 @@ fn main() {
     let source = std::fs::read_to_string(&args.input).expect("Couldn't read input file");
     let config = Config::default();
 
-    let tokens = tokenize(&source).unwrap();
-    let parsed = build_ast(&tokens, &config).unwrap();
+    let tokens = tokenize(&source).unwrap_or_else(|err| {
+        err.display_panic(&source);
+    });
+    let parsed = build_ast(&tokens, &config).unwrap_or_else(|err| {
+        err.display_panic(&source);
+    });
     let transformed = translate_ast(&parsed, &mut Namer::default(), &config);
 
     let optimized = if opt_level == OptLevel::Conservative {

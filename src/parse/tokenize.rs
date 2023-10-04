@@ -1,5 +1,5 @@
 use super::ParseError;
-use crate::prelude::*;
+use crate::{parse::ParseErrorKind, prelude::*};
 use regex::Regex;
 
 #[derive(PartialEq, Clone, Debug)]
@@ -35,11 +35,11 @@ pub enum BasicToken {
 }
 
 /// Transforms a raw string into a sequence of `BasicToken`s
-pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
+pub fn tokenize(raw: &str) -> Result<Vec<(BasicToken, Position)>, ParseError> {
     macro_rules! match_token {
-        ( $line:expr, $res:expr $(;)? ) => {};
+        ( $line:expr, $res:expr, $line_index:expr, $ch:ident $(;)? ) => {};
         (
-            $line:expr, $res:expr;
+            $line:expr, $res:expr, $line_index:expr, $ch:ident;
             $matcher:ident => (),
             $(
                 $rest_matcher:ident $(($rest_match_name:ident))? => $rest_value:tt,
@@ -47,17 +47,18 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
         ) => {
             if let Some(matched) = $matcher.find($line) {
                 $line = &$line[matched.end()..];
+                $ch += matched.len();
                 continue
             }
             match_token!(
-                $line, $res;
+                $line, $res, $line_index, $ch;
                 $(
                     $rest_matcher $(($rest_match_name))? => $rest_value,
                 )*
             );
         };
         (
-            $line:expr, $res:expr;
+            $line:expr, $res:expr, $line_index:expr, $ch:ident;
             $matcher:ident $(($match_name:ident))? => $value:expr,
             $(
                 $rest_matcher:ident $(($rest_match_name:ident))? => $rest_value:tt,
@@ -66,11 +67,13 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
             if let Some(matched) = $matcher.find($line) {
                 $line = &$line[matched.end()..];
                 $(let $match_name = matched.as_str();)?
-                $res.push($value);
+                let len = matched.len();
+                $res.push(($value, Position::span_ch($line_index, $ch, len)));
+                $ch += len;
                 continue
             }
             match_token!(
-                $line, $res;
+                $line, $res, $line_index, $ch;
                 $(
                     $rest_matcher $(($rest_match_name))? => $rest_value,
                 )*
@@ -78,7 +81,7 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
         }
     }
 
-    let mut res = Vec::new();
+    let mut res: Vec<(BasicToken, Position)> = Vec::new();
     let match_let = Regex::new(r"(?i)^let").unwrap();
     let match_jump = Regex::new(r"(?i)^go\s*to").unwrap();
     let match_word =
@@ -98,13 +101,14 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
     let match_comment = Regex::new(r"(?i)^rem\s.*$").unwrap();
     // TODO: handle labels
 
-    for mut line in raw.lines() {
+    for (line_index, mut line) in raw.lines().enumerate() {
+        let mut ch = 0;
         if !line.is_empty() {
-            res.push(BasicToken::NewLine);
+            res.push((BasicToken::NewLine, Position::point(line_index, 0)));
         }
         while !line.is_empty() {
             // Main match clause for tokens
-            match_token!(line, res;
+            match_token!(line, res, line_index, ch;
                 match_space => (),
                 match_let => (),
                 match_comment => (),
@@ -166,7 +170,10 @@ pub fn tokenize(raw: &str) -> Result<Vec<BasicToken>, ParseError> {
             );
 
             // If this line is reached, then none of the matches above matched
-            return Err(ParseError::InvalidToken(line.to_string()));
+            return Err(ParseError::new(
+                ParseErrorKind::InvalidToken(line.to_string()),
+                Position::point(line_index, ch),
+            ));
         }
     }
 

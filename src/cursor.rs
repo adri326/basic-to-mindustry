@@ -113,4 +113,14 @@ impl<'a, T> Cursor<'a, T> {
             offset: 0,
         }
     }
+
+    /// Returns the un-offset-ed underlying data
+    pub fn full_data(&self) -> &'a [T] {
+        self.data
+    }
+
+    /// Returns the offset
+    pub fn offset(&self) -> usize {
+        self.offset
+    }
 }

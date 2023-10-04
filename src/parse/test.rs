@@ -1,10 +1,14 @@
 use super::*;
 use crate::prelude::*;
 
+fn test_drop_position(tokens: Result<Vec<(BasicToken, Position)>, ParseError>) -> Vec<BasicToken> {
+    tokens.unwrap().into_iter().map(|pair| pair.0).collect()
+}
+
 #[test]
 fn test_tokenize_basic() {
     assert_eq!(
-        tokenize("hello + world").unwrap(),
+        test_drop_position(tokenize("hello + world")),
         vec![
             BasicToken::NewLine,
             BasicToken::Name(String::from("hello")),
@@ -14,7 +18,7 @@ fn test_tokenize_basic() {
     );
 
     assert_eq!(
-        tokenize("let thing = thing / 2").unwrap(),
+        test_drop_position(tokenize("let thing = thing / 2")),
         vec![
             BasicToken::NewLine,
             BasicToken::Name(String::from("thing")),
@@ -26,7 +30,7 @@ fn test_tokenize_basic() {
     );
 
     assert_eq!(
-        tokenize("10 thing = thing + 0.5\ngoto 10").unwrap(),
+        test_drop_position(tokenize("10 thing = thing + 0.5\ngoto 10")),
         vec![
             BasicToken::NewLine,
             BasicToken::Integer(10),
@@ -42,7 +46,9 @@ fn test_tokenize_basic() {
     );
 
     assert_eq!(
-        tokenize("x = 0\n\nif x > 0 then\nprint(\"Positive\")\nend if").unwrap(),
+        test_drop_position(tokenize(
+            "x = 0\n\nif x > 0 then\nprint(\"Positive\")\nend if"
+        )),
         vec![
             BasicToken::NewLine,
             BasicToken::Name(String::from("x")),
@@ -65,7 +71,7 @@ fn test_tokenize_basic() {
     );
 
     assert_eq!(
-        tokenize("if x > 0 then\nend\nend if").unwrap(),
+        test_drop_position(tokenize("if x > 0 then\nend\nend if")),
         vec![
             BasicToken::NewLine,
             BasicToken::If,
@@ -84,7 +90,7 @@ fn test_tokenize_basic() {
 #[test]
 fn test_parse_for() {
     assert_eq!(
-        tokenize("FOR x = 0 TO y\nPRINT x\nNEXT x").unwrap(),
+        test_drop_position(tokenize("FOR x = 0 TO y\nPRINT x\nNEXT x")),
         vec![
             BasicToken::NewLine,
             BasicToken::For,
@@ -124,11 +130,25 @@ fn test_parse_for() {
 #[test]
 fn test_operator_precedence() {
     fn test_parse<const N: usize>(list: [BasicToken; N]) -> BasicAstExpression {
-        parse_expression(&mut Cursor::from(&list)).unwrap()
+        parse_expression(&mut Cursor::from(
+            &list
+                .into_iter()
+                .map(|token| (token, Position::default()))
+                .collect::<Vec<_>>()[..],
+        ))
+        .unwrap()
     }
 
-    fn test_err<const N: usize>(list: [BasicToken; N]) -> ParseError {
-        parse_expression(&mut Cursor::from(&list)).err().unwrap()
+    fn test_err<const N: usize>(list: [BasicToken; N]) -> ParseErrorKind {
+        parse_expression(&mut Cursor::from(
+            &list
+                .into_iter()
+                .map(|token| (token, Position::default()))
+                .collect::<Vec<_>>()[..],
+        ))
+        .err()
+        .unwrap()
+        .kind
     }
 
     assert_eq!(
@@ -242,7 +262,7 @@ fn test_operator_precedence() {
             BasicToken::Name(String::from("hello")),
             BasicToken::Operator(Operator::Add.into()),
         ]),
-        ParseError::ExpectedOperand
+        ParseErrorKind::ExpectedOperand
     );
 
     assert_eq!(
@@ -254,7 +274,7 @@ fn test_operator_precedence() {
             BasicToken::Operator(Operator::Mul.into()),
             BasicToken::Integer(2),
         ]),
-        ParseError::MissingToken(BasicToken::CloseParen)
+        ParseErrorKind::MissingToken(BasicToken::CloseParen)
     );
 
     assert_eq!(
@@ -263,7 +283,7 @@ fn test_operator_precedence() {
             BasicToken::Operator(Operator::Add.into()),
             BasicToken::Operator(Operator::Mul.into()),
         ]),
-        ParseError::UnexpectedToken(BasicToken::Operator(Operator::Mul.into()))
+        ParseErrorKind::UnexpectedToken(BasicToken::Operator(Operator::Mul.into()))
     );
 
     assert!(matches!(
@@ -272,7 +292,7 @@ fn test_operator_precedence() {
             BasicToken::Operator(Operator::Add.into()),
             BasicToken::OpenParen,
         ]),
-        ParseError::ExpectedOperand | ParseError::MissingToken(BasicToken::CloseParen)
+        ParseErrorKind::ExpectedOperand | ParseErrorKind::MissingToken(BasicToken::CloseParen)
     ));
 
     assert!(matches!(
@@ -282,7 +302,7 @@ fn test_operator_precedence() {
             BasicToken::OpenParen,
             BasicToken::CloseParen
         ]),
-        ParseError::ExpectedOperand | ParseError::UnexpectedToken(BasicToken::CloseParen)
+        ParseErrorKind::ExpectedOperand | ParseErrorKind::UnexpectedToken(BasicToken::CloseParen)
     ));
 
     assert_eq!(
@@ -290,7 +310,7 @@ fn test_operator_precedence() {
             BasicToken::Operator(Operator::Add.into()),
             BasicToken::Integer(2)
         ]),
-        ParseError::UnexpectedToken(BasicToken::Operator(Operator::Add.into()))
+        ParseErrorKind::UnexpectedToken(BasicToken::Operator(Operator::Add.into()))
     );
 }
 

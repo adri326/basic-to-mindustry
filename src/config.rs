@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
-    parse::ParseError,
+    parse::{ParseError, ParseErrorKind},
     repr::basic::{BasicAstExpression, BasicAstInstruction},
+    repr::position::Position,
 };
 
 pub struct Config {
@@ -11,7 +12,7 @@ pub struct Config {
     /// Used for functions like `print_flush_world`
     pub special_functions: HashMap<
         String,
-        Box<dyn Fn(Vec<BasicAstExpression>) -> Result<BasicAstInstruction, ParseError>>,
+        Box<dyn Fn(Vec<BasicAstExpression>, Position) -> Result<BasicAstInstruction, ParseError>>,
     >,
 }
 
@@ -32,14 +33,17 @@ impl Default for Config {
 
         let mut special_functions: HashMap<
             String,
-            Box<dyn Fn(Vec<BasicAstExpression>) -> Result<BasicAstInstruction, _>>,
+            Box<dyn Fn(Vec<BasicAstExpression>, Position) -> Result<BasicAstInstruction, _>>,
         > = HashMap::new();
 
         special_functions.insert(
             String::from("print_flush_global"),
-            Box::new(|arguments: Vec<BasicAstExpression>| {
+            Box::new(|arguments: Vec<BasicAstExpression>, position| {
                 let BasicAstExpression::Variable(buffer) = &arguments[0] else {
-                    return Err(ParseError::InvalidArgument(arguments[0].clone()));
+                    return Err(ParseError::new(
+                        ParseErrorKind::InvalidArgument(arguments[0].clone()),
+                        position,
+                    ));
                 };
 
                 let expected_length = match buffer.as_str() {
@@ -47,14 +51,22 @@ impl Default for Config {
                     "mission" => 1,
                     "announce" => 2,
                     "toast" => 2,
-                    _ => return Err(ParseError::InvalidArgument(arguments[0].clone())),
+                    _ => {
+                        return Err(ParseError::new(
+                            ParseErrorKind::InvalidArgument(arguments[0].clone()),
+                            position,
+                        ))
+                    }
                 };
 
                 if arguments.len() != expected_length {
-                    return Err(ParseError::InvalidArgumentCount(
-                        String::from("print_flush_global"),
-                        expected_length,
-                        arguments.len(),
+                    return Err(ParseError::new(
+                        ParseErrorKind::InvalidArgumentCount(
+                            String::from("print_flush_global"),
+                            expected_length,
+                            arguments.len(),
+                        ),
+                        position,
                     ));
                 }
 
@@ -67,9 +79,12 @@ impl Default for Config {
 
         special_functions.insert(
             String::from("control"),
-            Box::new(|arguments| {
+            Box::new(|arguments, position| {
                 let BasicAstExpression::Variable(buffer) = &arguments[0] else {
-                    return Err(ParseError::InvalidArgument(arguments[0].clone()));
+                    return Err(ParseError::new(
+                        ParseErrorKind::InvalidArgument(arguments[0].clone()),
+                        position,
+                    ));
                 };
 
                 let expected_length = match buffer.as_str() {
@@ -78,14 +93,22 @@ impl Default for Config {
                     "shootp" => 4,
                     "config" => 3,
                     "color" => 3,
-                    _ => return Err(ParseError::InvalidArgument(arguments[0].clone())),
+                    _ => {
+                        return Err(ParseError::new(
+                            ParseErrorKind::InvalidArgument(arguments[0].clone()),
+                            position,
+                        ))
+                    }
                 };
 
                 if arguments.len() != expected_length {
-                    return Err(ParseError::InvalidArgumentCount(
-                        String::from("control"),
-                        expected_length,
-                        arguments.len(),
+                    return Err(ParseError::new(
+                        ParseErrorKind::InvalidArgumentCount(
+                            String::from("control"),
+                            expected_length,
+                            arguments.len(),
+                        ),
+                        position,
                     ));
                 }
 
