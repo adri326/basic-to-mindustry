@@ -382,6 +382,20 @@ pub fn translate_ast(
 
                 res.push(instruction);
             }
+            Instr::CallBuiltin(name, arguments) if name == "control" => translate_call!(
+                "control",
+                arguments,
+                res,
+                [BasicAstExpression::Variable(key), ..],
+                MindustryOperation::Control(
+                    key.clone(),
+                    arguments
+                        .iter()
+                        .skip(1)
+                        .map(|arg| translate_operand!(arg, res, namer))
+                        .collect()
+                )
+            ),
             Instr::CallBuiltin(name, arguments) => {
                 let Some((Some(target_name), mutating, _)) = config.builtin_functions.get(name)
                 else {

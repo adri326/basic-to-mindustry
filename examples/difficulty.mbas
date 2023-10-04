@@ -1,0 +1,42 @@
+READ(difficulty, cell1, 3)
+
+IF difficulty == 0 THEN
+    difficulty = 2
+    WRITE(difficulty, cell1, 3)
+END IF
+PRINT "Difficulty: "
+
+IF difficulty == 1 THEN
+    PRINT "<[green]Easy[white]>[gray] Medium  Hard "
+ELSE
+    IF difficulty == 2 THEN
+        PRINT " [gray]Easy [white]<[yellow]Medium[white]>[gray] Hard "
+    ELSE
+        PRINT "[gray]Easy  Medium [white]<[red]Hard[white]>"
+    END IF
+END IF
+PRINT_FLUSH(message1)
+
+difficulty = 0
+
+easy = switch1.@enabled
+IF easy THEN
+    difficulty = 1
+    CONTROL(enabled, switch1, false)
+END IF
+
+medium = switch2.@enabled
+IF medium THEN
+    difficulty = 2
+    CONTROL(enabled, switch2, false)
+END IF
+
+hard = switch3.@enabled
+IF hard THEN
+    difficulty = 3
+    CONTROL(enabled, switch3, false)
+END IF
+
+IF difficulty != 0 THEN
+    WRITE(difficulty, cell1, 3)
+END IF

@@ -120,10 +120,25 @@ impl std::fmt::Display for MindustryProgram {
                         WorldPrintFlush::Toast(time) => writeln!(f, "message toast {}", time)?,
                     };
                 }
-                MindustryOperation::Sensor { out_name, object, key } => {
+                MindustryOperation::Sensor {
+                    out_name,
+                    object,
+                    key,
+                } => {
                     writeln!(f, "sensor {out_name} {object} {key}")?;
                 }
+                MindustryOperation::Control(key, arguments) => {
+                    write!(f, "control {}", key)?;
+                    for arg in arguments {
+                        write!(f, " {}", arg)?;
+                    }
+                    writeln!(f)?;
+                }
             }
+        }
+
+        if matches!(self.0.last(), Some(MindustryOperation::JumpLabel(_))) {
+            writeln!(f, "end")?;
         }
 
         Ok(())

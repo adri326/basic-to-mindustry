@@ -61,6 +61,8 @@ pub enum MindustryOperation {
     PrintFlush(Operand),
     /// Available to world processors only - flushes the print buffer to a global buffer
     WorldPrintFlush(WorldPrintFlush),
+    /// Sets a property of a given block
+    Control(String, Vec<Operand>),
 
     /// Reads `key` from `object` and puts its result into `out_name`.
     /// `object` may be a connection, an entity, a block, a unit type, etc.
@@ -146,10 +148,12 @@ impl_operands!(
     mut: {
         Self::Generic(_name, operands) => operands.iter_mut().collect::<Vec<_>>(),
         Self::GenericMut(_name, _out_name, operands) => operands.iter_mut().collect::<Vec<_>>(),
+        Self::Control(_name, operands) => operands.iter_mut().collect::<Vec<_>>(),
     },
     ref: {
         Self::Generic(_name, operands) => operands.iter().collect::<Vec<_>>(),
         Self::GenericMut(_name, _out_name, operands) => operands.iter().collect::<Vec<_>>(),
+        Self::Control(_name, operands) => operands.iter().collect::<Vec<_>>(),
     }
 );
 
@@ -165,7 +169,8 @@ impl MindustryOperation {
                 value: _,
                 cell: _,
                 index: _,
-            } => false,
+            }
+            | Self::Control(_, _) => false,
 
             Self::Operator(out_name, _, _, _)
             | Self::UnaryOperator(out_name, _, _)
@@ -214,7 +219,8 @@ impl MindustryOperation {
             | Self::PrintFlush(_)
             | Self::WorldPrintFlush(_)
             | Self::Generic(_, _)
-            | Self::GenericMut(_, _, _) => false,
+            | Self::GenericMut(_, _, _)
+            | Self::Control(_, _) => false,
 
             Self::Set(var_name, _)
             | Self::Operator(var_name, _, _, _)

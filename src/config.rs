@@ -65,6 +65,37 @@ impl Default for Config {
             }),
         );
 
+        special_functions.insert(
+            String::from("control"),
+            Box::new(|arguments| {
+                let BasicAstExpression::Variable(buffer) = &arguments[0] else {
+                    return Err(ParseError::InvalidArgument(arguments[0].clone()));
+                };
+
+                let expected_length = match buffer.as_str() {
+                    "enabled" => 3,
+                    "shoot" => 5,
+                    "shootp" => 4,
+                    "config" => 3,
+                    "color" => 3,
+                    _ => return Err(ParseError::InvalidArgument(arguments[0].clone())),
+                };
+
+                if arguments.len() != expected_length {
+                    return Err(ParseError::InvalidArgumentCount(
+                        String::from("control"),
+                        expected_length,
+                        arguments.len(),
+                    ));
+                }
+
+                Ok(BasicAstInstruction::CallBuiltin(
+                    String::from("control"),
+                    arguments,
+                ))
+            }),
+        );
+
         Self {
             builtin_functions: HashMap::from([
                 builtin_function!("print_flush", None, false, 1),

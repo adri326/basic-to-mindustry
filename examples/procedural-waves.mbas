@@ -16,14 +16,19 @@ LOOP WHILE remaining > 0
 
 WHILE true
     wave = wave + 1
-    REM TODO: difficult control wave multiplier
-    LET progression = POW(wave / 4, 0.75)
+    READ(difficulty, cell1, 3)
+    difficulty = difficulty - 1
+    LET progression_mult = 5 - difficulty / 2
+    LET units_mult = 0.5 + difficulty / 2
+    LET max_progression = 8 + difficulty * 2
+
+    LET progression = POW(wave / progression_mult, 0.75)
     REM TODO: optimize duplicate operations
-    progression = MIN(progression / 2 + rand(progression / 2), 10)
+    progression = MIN(progression / 2 + rand(progression / 2), max_progression)
 
     LET units = 2 + SQRT(progression) * 4 + RAND(progression * 2)
-    REM TODO: difficulty control unit amount
-    units = CEIL(units * 1)
+
+    units = MIN(CEIL(units * units_mult), 20)
     LET tank_units = FLOOR(RAND(units))
     LET mech_units = FLOOR(RAND(units - tank_units))
     LET air_units = units - tank_units - mech_units
