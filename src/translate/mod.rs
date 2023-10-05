@@ -397,7 +397,7 @@ pub fn translate_ast(
                 )
             ),
             Instr::CallBuiltin(name, arguments) => {
-                let Some((Some(target_name), mutating, _)) = config.builtin_functions.get(name)
+                let Some((Some(target_name), mutating, _)) = config.builtin_routines.get(name)
                 else {
                     unreachable!("CallBuiltin constructed with unknown function name");
                 };

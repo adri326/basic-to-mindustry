@@ -208,4 +208,48 @@ LOOP
 
 ## Subroutines
 
-Subroutines allow you to execute the same piece of code from
+Subroutines allow you to jump to a point in your code, and return back to where you entered the subroutine.
+This allows you to re-use a piece of code, without duplicating it.
+
+```basic
+color = "white"
+amount = 0
+GOSUB display
+
+WHILE true
+    READ(amount, cell1, 0)
+    IF amount > 0 THEN
+        color = "green"
+        GOSUB display
+    ELSE
+        color = "red"
+        GOSUB display
+    END IF
+WEND
+
+display:
+    PRINT "Amount: [", color, "]", amount, "[white]"
+    PRINT_FLUSH(message1)
+    RETURN
+```
+
+As of now, subroutines save their return point in a numeric variable, using modulus arithmetic to pack many returns in one.
+This allows for 17 nested subroutine calls, before the "return stack" overflows.
+In most program however, this limitation shouldn't cause issues, unless if you forgot a `RETURN` or cause an infinite amount of recursive `GOSUB`s.
+
+The "return stack" is cleared at the beginning of the generated program.
+
+## Interacting with the world
+
+`mlog` provides several ways for processors to interact with the in-game world, which are reflected in MinBasic using functions:
+
+<!-- ### `sensor`
+
+The `sensor` instruction becomes the `.` operator:
+
+```basic
+health = SENSOR(@unit, @health)
+health = @unit.health
+
+@unit.health = @unit.health - 10
+``` -->

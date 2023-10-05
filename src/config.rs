@@ -7,10 +7,10 @@ use crate::{
 };
 
 pub struct Config {
-    pub builtin_functions: HashMap<String, (Option<String>, bool, usize)>,
+    pub builtin_routines: HashMap<String, (Option<String>, bool, usize)>,
 
     /// Used for functions like `print_flush_world`
-    pub special_functions: HashMap<
+    pub special_routines: HashMap<
         String,
         Box<dyn Fn(Vec<BasicAstExpression>, Position) -> Result<BasicAstInstruction, ParseError>>,
     >,
@@ -120,7 +120,7 @@ impl Default for Config {
         );
 
         Self {
-            builtin_functions: HashMap::from([
+            builtin_routines: HashMap::from([
                 builtin_function!("print_flush", None, false, 1),
                 builtin_function!("read", None, true, 3),
                 builtin_function!("write", None, false, 3),
@@ -131,7 +131,7 @@ impl Default for Config {
                 // TODO: same thing
                 builtin_function!("spawn", Some("spawn"), false, 6),
             ]),
-            special_functions,
+            special_routines: special_functions,
         }
     }
 }
