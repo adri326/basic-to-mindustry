@@ -72,6 +72,13 @@ pub enum MindustryOperation {
         key: Operand,
     },
 
+    /// Sets a property of a given block, only available to world processors
+    WorldSetProp {
+        key: Operand,
+        object: Operand,
+        value: Operand,
+    },
+
     /// A generic operation, with the following invariants:
     /// - all of the operands are read-only
     /// - there is no external dependency to other variables
@@ -144,6 +151,7 @@ impl_operands!(
         } => vec![cell, index],
         Self::Write { value, cell, index } => vec![value, cell, index],
         Self::Sensor { out_name: _, object, key } => vec![object, key],
+        Self::WorldSetProp { key, object, value } => vec![key, object, value],
     },
     mut: {
         Self::Generic(_name, operands) => operands.iter_mut().collect::<Vec<_>>(),
@@ -170,7 +178,12 @@ impl MindustryOperation {
                 cell: _,
                 index: _,
             }
-            | Self::Control(_, _) => false,
+            | Self::Control(_, _)
+            | Self::WorldSetProp {
+                value: _,
+                object: _,
+                key: _,
+            } => false,
 
             Self::Operator(out_name, _, _, _)
             | Self::UnaryOperator(out_name, _, _)
@@ -220,7 +233,12 @@ impl MindustryOperation {
             | Self::WorldPrintFlush(_)
             | Self::Generic(_, _)
             | Self::GenericMut(_, _, _)
-            | Self::Control(_, _) => false,
+            | Self::Control(_, _)
+            | Self::WorldSetProp {
+                value: _,
+                object: _,
+                key: _,
+            } => false,
 
             Self::Set(var_name, _)
             | Self::Operator(var_name, _, _, _)

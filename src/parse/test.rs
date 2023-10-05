@@ -21,6 +21,7 @@ fn test_tokenize_basic() {
         test_drop_position(tokenize("let thing = thing / 2")),
         vec![
             BasicToken::NewLine,
+            BasicToken::Let,
             BasicToken::Name(String::from("thing")),
             BasicToken::Assign,
             BasicToken::Name(String::from("thing")),

@@ -65,7 +65,7 @@ pub fn build_ast(
             break;
         };
 
-        match &drop_position(tokens.peek(3))[..] {
+        match &drop_position(tokens.peek(4))[..] {
             [BasicToken::NewLine, BasicToken::Integer(label), ..] => {
                 tokens.take(2);
                 instructions.push(BasicAstInstruction::JumpLabel(label.to_string()));
@@ -268,15 +268,33 @@ pub fn build_ast(
                 tokens.take(1);
                 instructions.push(BasicAstInstruction::Return);
             }
-            // == Misc ==
-            [BasicToken::Name(variable_name), BasicToken::Assign, ..] => {
-                tokens.take(2);
+            // == Assign ==
+            [BasicToken::Let, BasicToken::Name(variable_name), BasicToken::Assign, ..]
+            | [BasicToken::Name(variable_name), BasicToken::Assign, ..] => {
+                if let [(BasicToken::Let, _)] = &tokens.peek(1)[..] {
+                    tokens.take(3);
+                } else {
+                    tokens.take(2);
+                }
+
                 let expression = parse_expression(&mut tokens, config)?;
                 instructions.push(BasicAstInstruction::Assign(
                     variable_name.clone(),
                     expression,
                 ));
             }
+            [BasicToken::Name(variable_name), BasicToken::Operator(BasicOperator::Sensor), BasicToken::Name(key_name), BasicToken::Assign, ..] =>
+            {
+                let object = BasicAstExpression::Variable(variable_name.clone());
+                let key = SetPropOrControlKey::from(key_name.as_str());
+
+                tokens.take(4);
+
+                let value = parse_expression(&mut tokens, config)?;
+
+                instructions.push(BasicAstInstruction::SetPropOrControl(key, object, value));
+            }
+            // == Misc ==
             [BasicToken::Print, ..] => {
                 tokens.take(1);
 
@@ -596,23 +614,23 @@ pub(crate) fn parse_expression(
                 }
                 BasicOperator::Sensor => {
                     if let Some(fn_config) = config.builtin_functions.get("__sensor_operator") {
-                        let arguments = vec![
-                            ast,
-                            rhs
-                        ];
+                        let arguments = vec![ast, rhs];
                         fn_config.validate_args(&arguments, operator_pos)?;
 
-                        BasicAstExpression::BuiltinFunction(String::from("__sensor_operator"), arguments)
+                        BasicAstExpression::BuiltinFunction(
+                            String::from("__sensor_operator"),
+                            arguments,
+                        )
                     } else {
                         return Err(ParseError::new(
-                            ParseErrorKind::UnexpectedToken(BasicToken::Operator(BasicOperator::Sensor)),
-                            operator_pos
+                            ParseErrorKind::UnexpectedToken(BasicToken::Operator(
+                                BasicOperator::Sensor,
+                            )),
+                            operator_pos,
                         ));
                     }
                 }
             };
-
-
         }
 
         Ok(ast)

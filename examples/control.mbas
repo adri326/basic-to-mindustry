@@ -1,0 +1,5 @@
+REM Available to any processor, using the `control` instruction
+reactor1.enabled = false
+
+REM Only available to world processors, using the `setprop` instruction
+@unit.health = @unit.health / 2

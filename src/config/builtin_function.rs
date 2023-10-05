@@ -1,4 +1,9 @@
-use crate::{parse::ParseError, parse::ParseErrorKind, prelude::*, translate::{Namer, translate_expression}};
+use crate::{
+    parse::ParseError,
+    parse::ParseErrorKind,
+    prelude::*,
+    translate::{translate_expression, Namer},
+};
 
 pub trait BuiltinFunction {
     fn validate_args(
@@ -27,13 +32,24 @@ macro_rules! expect_n_args {
     };
 }
 
-fn translate_arguments(arguments: &[BasicAstExpression], namer: &mut Namer, config: &Config) -> (Vec<String>, MindustryProgram) {
-    let names = (0..arguments.len()).map(|_| namer.temporary()).collect::<Vec<_>>();
+fn translate_arguments(
+    arguments: &[BasicAstExpression],
+    namer: &mut Namer,
+    config: &Config,
+) -> (Vec<String>, MindustryProgram) {
+    let names = (0..arguments.len())
+        .map(|_| namer.temporary())
+        .collect::<Vec<_>>();
 
     let mut res = MindustryProgram::new();
 
     for (index, arg) in arguments.iter().enumerate() {
-        res.append(&mut translate_expression(arg, namer, names[index].clone(), config));
+        res.append(&mut translate_expression(
+            arg,
+            namer,
+            names[index].clone(),
+            config,
+        ));
     }
 
     (names, res)
@@ -87,12 +103,10 @@ impl BuiltinFunction for SensorOperator {
 
         match &args[1] {
             BasicAstExpression::Variable(_name) => Ok(()),
-            other => {
-                Err(ParseError::new(
-                    ParseErrorKind::InvalidArgument(other.clone()),
-                    call_span
-                ))
-            }
+            other => Err(ParseError::new(
+                ParseErrorKind::InvalidArgument(other.clone()),
+                call_span,
+            )),
         }
     }
 
@@ -112,7 +126,7 @@ impl BuiltinFunction for SensorOperator {
         res.push(MindustryOperation::Sensor {
             out_name: target_name,
             object: Operand::Variable(object_name),
-            key: Operand::Variable(format!("@{}", key))
+            key: Operand::Variable(format!("@{}", key)),
         });
 
         res

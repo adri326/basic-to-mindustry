@@ -6,13 +6,29 @@ pub enum BasicAstExpression {
     Float(f64),
     Variable(String),
     String(String),
-    Binary(
-        Operator,
-        Box<BasicAstExpression>,
-        Box<BasicAstExpression>,
-    ),
+    Binary(Operator, Box<BasicAstExpression>, Box<BasicAstExpression>),
     Unary(UnaryOperator, Box<BasicAstExpression>),
     BuiltinFunction(String, Vec<BasicAstExpression>),
+}
+
+/// The set of keys for `control` that accept one operand, and otherwise a key for `setprop`
+#[derive(Clone, Debug, PartialEq)]
+pub enum SetPropOrControlKey {
+    ControlEnabled,
+    ControlConfig,
+    ControlColor,
+    SetProp(String),
+}
+
+impl From<&str> for SetPropOrControlKey {
+    fn from(value: &str) -> Self {
+        match value {
+            "enabled" => Self::ControlEnabled,
+            "config" => Self::ControlConfig,
+            "color" => Self::ControlColor,
+            other => Self::SetProp(format!("@{}", other)),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -39,6 +55,7 @@ pub enum BasicAstInstruction {
     },
     While(BasicAstExpression, BasicAstBlock),
     DoWhile(BasicAstExpression, BasicAstBlock),
+    SetPropOrControl(SetPropOrControlKey, BasicAstExpression, BasicAstExpression),
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]

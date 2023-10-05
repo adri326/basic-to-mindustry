@@ -134,6 +134,9 @@ impl std::fmt::Display for MindustryProgram {
                     }
                     writeln!(f)?;
                 }
+                MindustryOperation::WorldSetProp { key, object, value } => {
+                    writeln!(f, "setprop {} {} {}", key, object, value)?;
+                }
             }
         }
 

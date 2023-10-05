@@ -32,6 +32,7 @@ pub enum BasicToken {
     Name(String),
     String(String),
     Operator(BasicOperator),
+    Let,
 }
 
 /// Transforms a raw string into a sequence of `BasicToken`s
@@ -110,7 +111,7 @@ pub fn tokenize(raw: &str) -> Result<Vec<(BasicToken, Position)>, ParseError> {
             // Main match clause for tokens
             match_token!(line, res, line_index, ch;
                 match_space => (),
-                match_let => (),
+                match_let => (BasicToken::Let),
                 match_comment => (),
                 match_jump => (BasicToken::Goto),
                 match_word(word) => (match word.to_lowercase().as_str().trim() {

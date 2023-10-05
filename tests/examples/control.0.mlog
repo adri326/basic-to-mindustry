@@ -1,0 +1,9 @@
+set main__tmp_0 reactor1
+set main__tmp_1 false
+control enabled main__tmp_0 main__tmp_1
+set main__tmp_2 @unit
+set main__tmp_6 @unit
+sensor main__tmp_4 main__tmp_6 @health
+set main__tmp_5 2
+op div main__tmp_3 main__tmp_4 main__tmp_5
+setprop @health main__tmp_2 main__tmp_3

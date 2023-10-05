@@ -357,6 +357,50 @@ pub fn translate_ast(
                     res.push(MindustryOperation::Print(Operand::Variable(tmp_name)));
                 }
             }
+            Instr::SetPropOrControl(key, object, value) => {
+                let object_name = namer.temporary();
+                res.append(&mut translate_expression(
+                    object,
+                    namer,
+                    object_name.clone(),
+                    config,
+                ));
+                let value_name = namer.temporary();
+                res.append(&mut translate_expression(
+                    value,
+                    namer,
+                    value_name.clone(),
+                    config,
+                ));
+
+                match key {
+                    SetPropOrControlKey::ControlEnabled
+                    | SetPropOrControlKey::ControlConfig
+                    | SetPropOrControlKey::ControlColor => {
+                        let key = match key {
+                            SetPropOrControlKey::ControlEnabled => String::from("enabled"),
+                            SetPropOrControlKey::ControlConfig => String::from("config"),
+                            SetPropOrControlKey::ControlColor => String::from("color"),
+                            _ => unreachable!(),
+                        };
+
+                        res.push(MindustryOperation::Control(
+                            key,
+                            vec![
+                                Operand::Variable(object_name),
+                                Operand::Variable(value_name),
+                            ],
+                        ));
+                    }
+                    SetPropOrControlKey::SetProp(key) => {
+                        res.push(MindustryOperation::WorldSetProp {
+                            key: Operand::Variable(key.clone()),
+                            object: Operand::Variable(object_name),
+                            value: Operand::Variable(value_name),
+                        });
+                    }
+                }
+            }
             Instr::CallBuiltin(name, arguments) if name == "read" => translate_call!(
                 "read",
                 arguments,
