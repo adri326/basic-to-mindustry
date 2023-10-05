@@ -1,2 +1,4 @@
 set main__tmp_0 @unit
 sensor health main__tmp_0 @health
+set main__tmp_2 @unit
+sensor health2 main__tmp_2 @health

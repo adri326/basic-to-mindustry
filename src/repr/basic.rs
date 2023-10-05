@@ -7,7 +7,7 @@ pub enum BasicAstExpression {
     Variable(String),
     String(String),
     Binary(
-        BasicOperator,
+        Operator,
         Box<BasicAstExpression>,
         Box<BasicAstExpression>,
     ),

@@ -1,1 +1,2 @@
 health = SENSOR(@unit, @health)
+health2 = @unit.health

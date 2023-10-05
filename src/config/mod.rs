@@ -127,6 +127,7 @@ impl Default for Config {
         let mut builtin_functions: HashMap<String, Box<dyn BuiltinFunction>> = HashMap::new();
 
         builtin_functions.insert(String::from("sensor"), Box::new(Sensor));
+        builtin_functions.insert(String::from("__sensor_operator"), Box::new(SensorOperator));
 
         Self {
             builtin_routines: HashMap::from([

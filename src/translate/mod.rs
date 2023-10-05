@@ -23,20 +23,20 @@ impl Default for Namer {
 }
 
 impl Namer {
-    fn temporary(&mut self) -> String {
+    pub fn temporary(&mut self) -> String {
         let res = format!("{}__tmp_{}", self.prefix, self.var_index);
         self.var_index += 1;
         res
     }
 
-    fn label(&mut self, suffix: &str) -> String {
+    pub fn label(&mut self, suffix: &str) -> String {
         let res = format!("{}__label_{}_{}", self.prefix, self.label_index, suffix);
         self.label_index += 1;
         res
     }
 }
 
-fn translate_expression(
+pub(crate) fn translate_expression(
     expression: &BasicAstExpression,
     namer: &mut Namer,
     target_name: String,
@@ -68,23 +68,12 @@ fn translate_expression(
 
             res.append(&mut right);
 
-            match op {
-                BasicOperator::Operator(op) => {
-                    res.push(MindustryOperation::Operator(
-                        target_name,
-                        *op,
-                        Operand::Variable(left_name),
-                        Operand::Variable(right_name),
-                    ));
-                }
-                BasicOperator::Sensor => {
-                    res.push(MindustryOperation::Sensor {
-                        out_name: target_name,
-                        object: Operand::Variable(left_name),
-                        key: Operand::Variable(right_name),
-                    });
-                }
-            }
+            res.push(MindustryOperation::Operator(
+                target_name,
+                *op,
+                Operand::Variable(left_name),
+                Operand::Variable(right_name),
+            ));
 
             res
         }
@@ -101,28 +90,11 @@ fn translate_expression(
             res
         }
         BasicAstExpression::BuiltinFunction(name, arguments) => {
-            let names = (0..arguments.len())
-                .map(|_| namer.temporary())
-                .collect::<Vec<_>>();
-
-            let mut res = MindustryProgram::new();
-
-            for (index, arg) in arguments.iter().enumerate() {
-                res.append(&mut translate_expression(
-                    arg,
-                    namer,
-                    names[index].clone(),
-                    config,
-                ));
-            }
-
             let Some(fn_config) = config.builtin_functions.get(name) else {
                 unreachable!("Builtin function {} not found", name);
             };
 
-            res.append(&mut fn_config.translate(&names, namer, config, target_name));
-
-            res
+            fn_config.translate(arguments, namer, config, target_name)
         }
     }
 }

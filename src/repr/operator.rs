@@ -35,15 +35,6 @@ impl BasicOperator {
             Self::Operator(op) => op.precedence(),
         }
     }
-
-    pub(crate) fn from_fn_name(raw: &str) -> Option<Self> {
-        match raw {
-            "max" => Some(Self::Operator(Operator::Max)),
-            "min" => Some(Self::Operator(Operator::Min)),
-            "pow" => Some(Self::Operator(Operator::Pow)),
-            _ => None,
-        }
-    }
 }
 
 impl Operator {
@@ -56,6 +47,15 @@ impl Operator {
             Self::Eq | Self::Neq | Self::Gt | Self::Lt | Self::Gte | Self::Lte => 1,
             Self::And | Self::Or => 0,
             _ => 128,
+        }
+    }
+
+    pub(crate) fn from_fn_name(raw: &str) -> Option<Self> {
+        match raw {
+            "max" => Some(Self::Max),
+            "min" => Some(Self::Min),
+            "pow" => Some(Self::Pow),
+            _ => None,
         }
     }
 }

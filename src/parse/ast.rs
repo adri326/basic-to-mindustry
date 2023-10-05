@@ -503,7 +503,7 @@ pub(crate) fn parse_expression(
                         ))
                     }
                 } else if let Some(binary_operator) =
-                    BasicOperator::from_fn_name(fn_name_lowercase.as_str())
+                    Operator::from_fn_name(fn_name_lowercase.as_str())
                 {
                     if arguments.len() != 2 {
                         Err(ParseError::new(
@@ -580,7 +580,7 @@ pub(crate) fn parse_expression(
             if operator.precedence() < min_precedence {
                 break;
             }
-            tokens.take(1);
+            let operator_pos = tokens.take(1)[0].1;
             let mut rhs = parse_expression_item(tokens, config)?;
             while let Some(&BasicToken::Operator(sub_operator)) = peek(tokens) {
                 if sub_operator.precedence() > operator.precedence() {
@@ -590,7 +590,29 @@ pub(crate) fn parse_expression(
                 }
             }
 
-            ast = BasicAstExpression::Binary(operator, Box::new(ast), Box::new(rhs));
+            ast = match operator {
+                BasicOperator::Operator(op) => {
+                    BasicAstExpression::Binary(op, Box::new(ast), Box::new(rhs))
+                }
+                BasicOperator::Sensor => {
+                    if let Some(fn_config) = config.builtin_functions.get("__sensor_operator") {
+                        let arguments = vec![
+                            ast,
+                            rhs
+                        ];
+                        fn_config.validate_args(&arguments, operator_pos)?;
+
+                        BasicAstExpression::BuiltinFunction(String::from("__sensor_operator"), arguments)
+                    } else {
+                        return Err(ParseError::new(
+                            ParseErrorKind::UnexpectedToken(BasicToken::Operator(BasicOperator::Sensor)),
+                            operator_pos
+                        ));
+                    }
+                }
+            };
+
+
         }
 
         Ok(ast)
