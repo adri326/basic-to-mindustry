@@ -19,19 +19,19 @@ PRINT_FLUSH(message1)
 
 difficulty = 0
 
-easy = switch1.@enabled
+easy = SENSOR(switch1, @enabled)
 IF easy THEN
     difficulty = 1
     CONTROL(enabled, switch1, false)
 END IF
 
-medium = switch2.@enabled
+medium = SENSOR(switch2, @enabled)
 IF medium THEN
     difficulty = 2
     CONTROL(enabled, switch2, false)
 END IF
 
-hard = switch3.@enabled
+hard = SENSOR(switch3, @enabled)
 IF hard THEN
     difficulty = 3
     CONTROL(enabled, switch3, false)

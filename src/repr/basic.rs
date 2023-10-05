@@ -12,6 +12,7 @@ pub enum BasicAstExpression {
         Box<BasicAstExpression>,
     ),
     Unary(UnaryOperator, Box<BasicAstExpression>),
+    BuiltinFunction(String, Vec<BasicAstExpression>),
 }
 
 #[derive(Clone, Debug, PartialEq)]

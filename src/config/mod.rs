@@ -6,6 +6,9 @@ use crate::{
     repr::position::Position,
 };
 
+mod builtin_function;
+use builtin_function::*;
+
 pub struct Config {
     pub builtin_routines: HashMap<String, (Option<String>, bool, usize)>,
 
@@ -14,6 +17,8 @@ pub struct Config {
         String,
         Box<dyn Fn(Vec<BasicAstExpression>, Position) -> Result<BasicAstInstruction, ParseError>>,
     >,
+
+    pub builtin_functions: HashMap<String, Box<dyn BuiltinFunction>>,
 }
 
 impl Default for Config {
@@ -31,12 +36,12 @@ impl Default for Config {
             };
         }
 
-        let mut special_functions: HashMap<
+        let mut special_routines: HashMap<
             String,
             Box<dyn Fn(Vec<BasicAstExpression>, Position) -> Result<BasicAstInstruction, _>>,
         > = HashMap::new();
 
-        special_functions.insert(
+        special_routines.insert(
             String::from("print_flush_global"),
             Box::new(|arguments: Vec<BasicAstExpression>, position| {
                 let BasicAstExpression::Variable(buffer) = &arguments[0] else {
@@ -77,7 +82,7 @@ impl Default for Config {
             }),
         );
 
-        special_functions.insert(
+        special_routines.insert(
             String::from("control"),
             Box::new(|arguments, position| {
                 let BasicAstExpression::Variable(buffer) = &arguments[0] else {
@@ -119,6 +124,10 @@ impl Default for Config {
             }),
         );
 
+        let mut builtin_functions: HashMap<String, Box<dyn BuiltinFunction>> = HashMap::new();
+
+        builtin_functions.insert(String::from("sensor"), Box::new(Sensor));
+
         Self {
             builtin_routines: HashMap::from([
                 builtin_function!("print_flush", None, false, 1),
@@ -131,7 +140,8 @@ impl Default for Config {
                 // TODO: same thing
                 builtin_function!("spawn", Some("spawn"), false, 6),
             ]),
-            special_routines: special_functions,
+            special_routines,
+            builtin_functions,
         }
     }
 }

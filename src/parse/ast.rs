@@ -82,7 +82,7 @@ pub fn build_ast(
                 tokens.take(1);
                 let then_index = find_token_index(&tokens, BasicToken::Then)?;
 
-                let condition = parse_expression(&mut tokens.range(0..then_index))?;
+                let condition = parse_expression(&mut tokens.range(0..then_index), config)?;
 
                 tokens.take(then_index + 1);
 
@@ -130,17 +130,17 @@ pub fn build_ast(
             [BasicToken::For, BasicToken::Name(variable), BasicToken::Assign, ..] => {
                 tokens.take(3);
 
-                let start = parse_expression(&mut tokens)?;
+                let start = parse_expression(&mut tokens, config)?;
 
                 expect_next_token(&mut tokens, &BasicToken::To)?;
                 tokens.take(1);
 
-                let end = parse_expression(&mut tokens)?;
+                let end = parse_expression(&mut tokens, config)?;
 
                 let step = if let Some((BasicToken::Step, _pos)) = tokens.get(0) {
                     tokens.take(1);
 
-                    parse_expression(&mut tokens)?
+                    parse_expression(&mut tokens, config)?
                 } else {
                     BasicAstExpression::Integer(1)
                 };
@@ -180,14 +180,14 @@ pub fn build_ast(
             // == While loops ==
             [BasicToken::While, ..] => {
                 tokens.take(1);
-                let condition = parse_expression(&mut tokens)?;
+                let condition = parse_expression(&mut tokens, config)?;
                 expect_next_token(&tokens, &BasicToken::NewLine)?;
 
                 context_stack.push((Vec::new(), Context::While(condition)));
             }
             [BasicToken::Do, BasicToken::While, ..] => {
                 tokens.take(2);
-                let condition = parse_expression(&mut tokens)?;
+                let condition = parse_expression(&mut tokens, config)?;
                 expect_next_token(&tokens, &BasicToken::NewLine)?;
 
                 context_stack.push((Vec::new(), Context::DoWhile(condition)));
@@ -213,7 +213,7 @@ pub fn build_ast(
             [BasicToken::Loop, BasicToken::While, ..] => {
                 tokens.take(2);
 
-                let condition = parse_expression(&mut tokens)?;
+                let condition = parse_expression(&mut tokens, config)?;
 
                 pop_context!(context_stack, instructions, {
                     Context::Do => {
@@ -271,7 +271,7 @@ pub fn build_ast(
             // == Misc ==
             [BasicToken::Name(variable_name), BasicToken::Assign, ..] => {
                 tokens.take(2);
-                let expression = parse_expression(&mut tokens)?;
+                let expression = parse_expression(&mut tokens, config)?;
                 instructions.push(BasicAstInstruction::Assign(
                     variable_name.clone(),
                     expression,
@@ -285,11 +285,11 @@ pub fn build_ast(
                 if let Some((BasicToken::NewLine, _)) = tokens.get(0) {
                     instructions.push(BasicAstInstruction::Print(expressions));
                 } else {
-                    expressions.push((parse_expression(&mut tokens)?, false));
+                    expressions.push((parse_expression(&mut tokens, config)?, false));
 
                     while let Some((BasicToken::Comma, _)) = tokens.get(0) {
                         tokens.take(1);
-                        expressions.push((parse_expression(&mut tokens)?, false));
+                        expressions.push((parse_expression(&mut tokens, config)?, false));
                     }
 
                     instructions.push(BasicAstInstruction::Print(expressions));
@@ -307,7 +307,7 @@ pub fn build_ast(
                 let mut arguments = Vec::new();
 
                 while tokens.get(0).map(|pair| &pair.0) != Some(&BasicToken::CloseParen) {
-                    arguments.push(parse_expression(&mut tokens)?);
+                    arguments.push(parse_expression(&mut tokens, config)?);
 
                     match tokens.get(0) {
                         Some((BasicToken::Comma, _)) => {
@@ -440,6 +440,7 @@ impl_op_basic_ast_expression!(std::ops::Div, div, Operator::Div);
 
 pub(crate) fn parse_expression(
     tokens: &mut Cursor<'_, (BasicToken, Position)>,
+    config: &Config,
 ) -> Result<BasicAstExpression, ParseError> {
     /// Returns the first non-newline token in `tokens`
     fn peek(tokens: &[(BasicToken, Position)]) -> Option<&BasicToken> {
@@ -452,6 +453,7 @@ pub(crate) fn parse_expression(
     /// Parses a single expression item
     fn parse_expression_item(
         tokens: &mut Cursor<'_, (BasicToken, Position)>,
+        config: &Config,
     ) -> Result<BasicAstExpression, ParseError> {
         let position = tokens.get(0).map(|pair| pair.1).unwrap_or_default();
 
@@ -469,7 +471,7 @@ pub(crate) fn parse_expression(
                 let fn_name_lowercase = fn_name.to_ascii_lowercase();
                 let mut arguments = Vec::new();
                 while tokens.get(0).map(|pair| &pair.0) != Some(&BasicToken::CloseParen) {
-                    arguments.push(parse_expression(tokens)?);
+                    arguments.push(parse_expression(tokens, config)?);
 
                     match tokens.get(0).map(|pair| &pair.0) {
                         Some(BasicToken::Comma) => {
@@ -520,6 +522,14 @@ pub(crate) fn parse_expression(
                             Box::new(iter.next().unwrap()),
                         ))
                     }
+                } else if let Some(function_config) =
+                    config.builtin_functions.get(&fn_name_lowercase)
+                {
+                    function_config.validate_args(&arguments, span)?;
+                    Ok(BasicAstExpression::BuiltinFunction(
+                        fn_name_lowercase,
+                        arguments,
+                    ))
                 } else {
                     unimplemented!(
                         "User function calls are not yet supported! Function: {:?}",
@@ -537,7 +547,7 @@ pub(crate) fn parse_expression(
             }
             [BasicToken::OpenParen, ..] => {
                 tokens.take(1);
-                let res = parse_expression(tokens)?;
+                let res = parse_expression(tokens, config)?;
                 if let Some((BasicToken::CloseParen, _)) = tokens.take(1).get(0) {
                     Ok(res)
                 } else {
@@ -563,6 +573,7 @@ pub(crate) fn parse_expression(
         tokens: &mut Cursor<'_, (BasicToken, Position)>,
         lhs: BasicAstExpression,
         min_precedence: u8,
+        config: &Config,
     ) -> Result<BasicAstExpression, ParseError> {
         let mut ast = lhs;
         while let Some(&BasicToken::Operator(operator)) = peek(tokens) {
@@ -570,10 +581,10 @@ pub(crate) fn parse_expression(
                 break;
             }
             tokens.take(1);
-            let mut rhs = parse_expression_item(tokens)?;
+            let mut rhs = parse_expression_item(tokens, config)?;
             while let Some(&BasicToken::Operator(sub_operator)) = peek(tokens) {
                 if sub_operator.precedence() > operator.precedence() {
-                    rhs = parse_expression_main(tokens, rhs, operator.precedence() + 1)?;
+                    rhs = parse_expression_main(tokens, rhs, operator.precedence() + 1, config)?;
                 } else {
                     break;
                 }
@@ -586,8 +597,8 @@ pub(crate) fn parse_expression(
     }
 
     // Remove starting newlines
-    let lhs = parse_expression_item(tokens)?;
-    let res = parse_expression_main(tokens, lhs, 0)?;
+    let lhs = parse_expression_item(tokens, config)?;
+    let res = parse_expression_main(tokens, lhs, 0, config)?;
 
     Ok(res)
 }

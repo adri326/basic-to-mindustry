@@ -130,22 +130,28 @@ fn test_parse_for() {
 #[test]
 fn test_operator_precedence() {
     fn test_parse<const N: usize>(list: [BasicToken; N]) -> BasicAstExpression {
-        parse_expression(&mut Cursor::from(
-            &list
-                .into_iter()
-                .map(|token| (token, Position::default()))
-                .collect::<Vec<_>>()[..],
-        ))
+        parse_expression(
+            &mut Cursor::from(
+                &list
+                    .into_iter()
+                    .map(|token| (token, Position::default()))
+                    .collect::<Vec<_>>()[..],
+            ),
+            &Config::default(),
+        )
         .unwrap()
     }
 
     fn test_err<const N: usize>(list: [BasicToken; N]) -> ParseErrorKind {
-        parse_expression(&mut Cursor::from(
-            &list
-                .into_iter()
-                .map(|token| (token, Position::default()))
-                .collect::<Vec<_>>()[..],
-        ))
+        parse_expression(
+            &mut Cursor::from(
+                &list
+                    .into_iter()
+                    .map(|token| (token, Position::default()))
+                    .collect::<Vec<_>>()[..],
+            ),
+            &Config::default(),
+        )
         .err()
         .unwrap()
         .kind

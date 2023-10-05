@@ -24,6 +24,7 @@ pub enum Operator {
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum BasicOperator {
     Operator(Operator),
+    // TODO: rename to something else and have it not use variables as rhs keys
     Sensor,
 }
 

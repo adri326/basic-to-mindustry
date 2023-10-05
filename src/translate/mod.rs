@@ -40,6 +40,7 @@ fn translate_expression(
     expression: &BasicAstExpression,
     namer: &mut Namer,
     target_name: String,
+    config: &Config,
 ) -> MindustryProgram {
     match expression {
         BasicAstExpression::Integer(int) => {
@@ -62,8 +63,8 @@ fn translate_expression(
             let left_name = namer.temporary();
             let right_name = namer.temporary();
 
-            let mut res = translate_expression(left.as_ref(), namer, left_name.clone());
-            let mut right = translate_expression(right.as_ref(), namer, right_name.clone());
+            let mut res = translate_expression(left.as_ref(), namer, left_name.clone(), config);
+            let mut right = translate_expression(right.as_ref(), namer, right_name.clone(), config);
 
             res.append(&mut right);
 
@@ -89,13 +90,37 @@ fn translate_expression(
         }
         BasicAstExpression::Unary(op, value) => {
             let tmp_name = namer.temporary();
-            let mut res = translate_expression(value.as_ref(), namer, tmp_name.clone());
+            let mut res = translate_expression(value.as_ref(), namer, tmp_name.clone(), config);
 
             res.push(MindustryOperation::UnaryOperator(
                 target_name.clone(),
                 *op,
                 Operand::Variable(tmp_name),
             ));
+
+            res
+        }
+        BasicAstExpression::BuiltinFunction(name, arguments) => {
+            let names = (0..arguments.len())
+                .map(|_| namer.temporary())
+                .collect::<Vec<_>>();
+
+            let mut res = MindustryProgram::new();
+
+            for (index, arg) in arguments.iter().enumerate() {
+                res.append(&mut translate_expression(
+                    arg,
+                    namer,
+                    names[index].clone(),
+                    config,
+                ));
+            }
+
+            let Some(fn_config) = config.builtin_functions.get(name) else {
+                unreachable!("Builtin function {} not found", name);
+            };
+
+            res.append(&mut fn_config.translate(&names, namer, config, target_name));
 
             res
         }
@@ -124,10 +149,16 @@ macro_rules! translate_operand {
     (
         $operand:expr,
         $res:expr,
-        $namer:expr $(,)?
+        $namer:expr,
+        $config:expr $(,)?
     ) => {{
         let name = $namer.temporary();
-        $res.append(&mut translate_expression($operand, $namer, name.clone()));
+        $res.append(&mut translate_expression(
+            $operand,
+            $namer,
+            name.clone(),
+            $config,
+        ));
         Operand::Variable(name)
     }};
 }
@@ -192,7 +223,8 @@ pub fn translate_ast(
                 res.push(MindustryOperation::End);
             }
             Instr::Assign(name, expression) => {
-                let mut instructions = translate_expression(expression, namer, name.clone());
+                let mut instructions =
+                    translate_expression(expression, namer, name.clone(), config);
                 res.append(&mut instructions);
             }
             Instr::IfThenElse(condition, true_branch, false_branch) => {
@@ -201,6 +233,7 @@ pub fn translate_ast(
                     condition,
                     namer,
                     condition_name.clone(),
+                    config,
                 ));
 
                 if !false_branch.instructions.is_empty() {
@@ -248,9 +281,24 @@ pub fn translate_ast(
                 let step_name = namer.temporary();
 
                 // Initialization: evaluate `start`, `end` and `step`
-                res.append(&mut translate_expression(start, namer, variable.clone()));
-                res.append(&mut translate_expression(end, namer, end_name.clone()));
-                res.append(&mut translate_expression(step, namer, step_name.clone()));
+                res.append(&mut translate_expression(
+                    start,
+                    namer,
+                    variable.clone(),
+                    config,
+                ));
+                res.append(&mut translate_expression(
+                    end,
+                    namer,
+                    end_name.clone(),
+                    config,
+                ));
+                res.append(&mut translate_expression(
+                    step,
+                    namer,
+                    step_name.clone(),
+                    config,
+                ));
 
                 // Condition
                 res.push(MindustryOperation::JumpLabel(start_label.clone()));
@@ -285,6 +333,7 @@ pub fn translate_ast(
                     condition,
                     namer,
                     condition_name.clone(),
+                    config,
                 ));
                 res.push(MindustryOperation::JumpIf(
                     end_label.clone(),
@@ -315,6 +364,7 @@ pub fn translate_ast(
                     condition,
                     namer,
                     condition_name.clone(),
+                    config,
                 ));
                 res.push(MindustryOperation::JumpIf(
                     start_label,
@@ -330,6 +380,7 @@ pub fn translate_ast(
                         &expression.0,
                         namer,
                         tmp_name.clone(),
+                        config,
                     ));
                     res.push(MindustryOperation::Print(Operand::Variable(tmp_name)));
                 }
@@ -341,8 +392,8 @@ pub fn translate_ast(
                 [BasicAstExpression::Variable(out_name), cell, index],
                 MindustryOperation::Read {
                     out_name: out_name.clone(),
-                    cell: translate_operand!(cell, res, namer),
-                    index: translate_operand!(index, res, namer),
+                    cell: translate_operand!(cell, res, namer, config),
+                    index: translate_operand!(index, res, namer, config),
                 }
             ),
             Instr::CallBuiltin(name, arguments) if name == "write" => translate_call!(
@@ -351,9 +402,9 @@ pub fn translate_ast(
                 res,
                 [value, cell, index],
                 MindustryOperation::Write {
-                    value: translate_operand!(value, res, namer),
-                    cell: translate_operand!(cell, res, namer),
-                    index: translate_operand!(index, res, namer),
+                    value: translate_operand!(value, res, namer, config),
+                    cell: translate_operand!(cell, res, namer, config),
+                    index: translate_operand!(index, res, namer, config),
                 }
             ),
             Instr::CallBuiltin(name, arguments) if name == "print_flush" => translate_call!(
@@ -361,7 +412,7 @@ pub fn translate_ast(
                 arguments,
                 res,
                 [cell],
-                MindustryOperation::PrintFlush(translate_operand!(cell, res, namer))
+                MindustryOperation::PrintFlush(translate_operand!(cell, res, namer, config))
             ),
             Instr::CallBuiltin(name, arguments) if name == "print_flush_global" => {
                 let BasicAstExpression::Variable(buffer) = &arguments[0] else {
@@ -371,12 +422,18 @@ pub fn translate_ast(
                 let instruction = MindustryOperation::WorldPrintFlush(match buffer.as_str() {
                     "mission" => WorldPrintFlush::Mission,
                     "notify" => WorldPrintFlush::Notify,
-                    "announce" => {
-                        WorldPrintFlush::Announce(translate_operand!(&arguments[1], res, namer))
-                    }
-                    "toast" => {
-                        WorldPrintFlush::Toast(translate_operand!(&arguments[1], res, namer))
-                    }
+                    "announce" => WorldPrintFlush::Announce(translate_operand!(
+                        &arguments[1],
+                        res,
+                        namer,
+                        config
+                    )),
+                    "toast" => WorldPrintFlush::Toast(translate_operand!(
+                        &arguments[1],
+                        res,
+                        namer,
+                        config
+                    )),
                     _ => unreachable!("print_flush_global constructed with invalid arguments"),
                 });
 
@@ -392,7 +449,7 @@ pub fn translate_ast(
                     arguments
                         .iter()
                         .skip(1)
-                        .map(|arg| translate_operand!(arg, res, namer))
+                        .map(|arg| translate_operand!(arg, res, namer, config))
                         .collect()
                 )
             ),
@@ -413,6 +470,7 @@ pub fn translate_ast(
                         argument,
                         namer,
                         argument_names[i].clone(),
+                        config,
                     ));
                 }
 

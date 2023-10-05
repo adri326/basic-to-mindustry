@@ -5,11 +5,11 @@ use crate::prelude::*;
 pub fn optimize_constant(program: MindustryProgram) -> MindustryProgram {
     // Returns true if the variable is safe to substitute into an operand
     let is_safe_variable = |name: &str| -> bool {
-        if matches!(name, "@this" | "@thisx" | "@thisy" | "@links") || is_unit_constant(name) {
-            return true;
+        if matches!(name, "@counter" | "@ipt" | "@time" | "@tick" | "@unit") {
+            false
+        } else {
+            true
         }
-
-        !name.starts_with('@')
     };
 
     let res = replace_if(program, |instructions, instruction, use_index| {
@@ -102,7 +102,8 @@ pub fn optimize_constant(program: MindustryProgram) -> MindustryProgram {
     optimize_dead_code(res)
 }
 
-// TODO: add serpulo units
+// TODO: add serpulo units and move to a text file
+#[allow(dead_code)]
 fn is_unit_constant(name: &str) -> bool {
     matches!(
         name,
