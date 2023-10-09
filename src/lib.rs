@@ -1,5 +1,6 @@
 pub mod config;
 pub mod cursor;
+pub mod interpreter;
 pub mod optimize;
 pub mod parse;
 pub mod repr;
