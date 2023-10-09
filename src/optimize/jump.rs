@@ -48,6 +48,11 @@ pub fn optimize_jump_op(program: MindustryProgram) -> MindustryProgram {
                             {
                                 Lookaround::Stop((*operator, lhs.clone(), rhs.clone()))
                             }
+                            MindustryOperation::UnaryOperator(name, operator, value)
+                                if *name == var_name && *operator == UnaryOperator::Not =>
+                            {
+                                Lookaround::Stop((Operator::Eq, value.clone(), Operand::Integer(0)))
+                            }
                             x if x.mutates(&var_name) || x.breaks_flow() => Lookaround::Abort,
                             _ => Lookaround::Continue,
                         },

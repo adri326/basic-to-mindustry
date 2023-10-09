@@ -31,7 +31,9 @@ pub(crate) fn optimize_dead_code(program: MindustryProgram) -> MindustryProgram 
     replace_if(
         program,
         |_instructions, instruction, _index| match instruction {
-            MindustryOperation::Set(name, _) | MindustryOperation::Operator(name, _, _, _) => {
+            MindustryOperation::Set(name, _)
+            | MindustryOperation::Operator(name, _, _, _)
+            | MindustryOperation::UnaryOperator(name, _, _) => {
                 if !is_temporary_variable(name) {
                     return None;
                 }

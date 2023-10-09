@@ -243,13 +243,25 @@ The "return stack" is cleared at the beginning of the generated program.
 
 `mlog` provides several ways for processors to interact with the in-game world, which are reflected in MinBasic using functions:
 
-<!-- ### `sensor`
+### Sensor, Control and Set Prop
 
-The `sensor` instruction becomes the `.` operator:
+The easiest way to read data from units or blocks, and to write data to those, is to use the dot (`.`) operator:
 
 ```basic
-health = SENSOR(@unit, @health)
-health = @unit.health
+REM A simple program to shut down reactors when their health of cryofluid amount dips too low
+LET reactor = reactor1
 
-@unit.health = @unit.health - 10
-``` -->
+LET enoughHealth = reactor.health >= reactor.maxHealth / 2
+LET enoughCryofluid = reactor.cryofluid >= reactor.liquidCapacity
+
+IF NOT(enoughHealth AND enoughCryofluid) THEN
+    reactor.enabled = false
+ELSE
+    reactor.enabled = true
+END IF
+```
+
+When reading, the dot operator translates to the `sensor` instruction, and replaces the key with its corresponding `@`-variable (`block1.health` becomes `sensor @health block1`, `@unit.x` becomes `sensor @x @unit`, etc.)
+
+When writing, the `control` instruction is used when possible, namely with `.enabled`, `.config` and `.color`.
+Otherwise, the `setprop` instruction is used, which is only available to world processors, and the key is replaced with its corresponding `@`-variable.

@@ -108,7 +108,7 @@ pub enum UnaryOperator {
     Ceil,
     Rand,
     Sqrt,
-    // Not,
+    Not,
 }
 
 impl TryFrom<&str> for UnaryOperator {
@@ -121,17 +121,8 @@ impl TryFrom<&str> for UnaryOperator {
             "ceil" => Ok(Self::Ceil),
             "rand" => Ok(Self::Rand),
             "sqrt" => Ok(Self::Sqrt),
+            "not" => Ok(Self::Not),
             _ => Err(()),
         }
-    }
-}
-
-pub(crate) fn format_unary_operator(operator: UnaryOperator) -> &'static str {
-    match operator {
-        UnaryOperator::Floor => "floor",
-        UnaryOperator::Round => "round",
-        UnaryOperator::Ceil => "ceil",
-        UnaryOperator::Rand => "rand",
-        UnaryOperator::Sqrt => "sqrt",
     }
 }

@@ -148,6 +148,18 @@ impl std::fmt::Display for MindustryProgram {
     }
 }
 
+fn format_unary_operator(operator: UnaryOperator) -> &'static str {
+    match operator {
+        UnaryOperator::Floor => "floor",
+        UnaryOperator::Round => "round",
+        UnaryOperator::Ceil => "ceil",
+        UnaryOperator::Rand => "rand",
+        UnaryOperator::Sqrt => "sqrt",
+        // Note: we use `equal x 0` to implement the binary NOT operation
+        UnaryOperator::Not => "equal",
+    }
+}
+
 fn format_condition(operator: Operator) -> &'static str {
     match operator {
         Operator::Eq => "equal",

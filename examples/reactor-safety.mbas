@@ -1,0 +1,11 @@
+REM A simple program to shut down reactors when their health of cryofluid amount dips too low
+LET reactor = reactor1
+
+LET enoughHealth = reactor.health >= reactor.maxHealth / 2
+LET enoughCryofluid = reactor.cryofluid >= reactor.liquidCapacity
+
+IF NOT(enoughHealth AND enoughCryofluid) THEN
+    reactor.enabled = false
+ELSE
+    reactor.enabled = true
+END IF
