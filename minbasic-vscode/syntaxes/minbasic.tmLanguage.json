@@ -33,7 +33,7 @@
         },
         {
             "comment": "Operator",
-            "match": "(?i)(([+\\-*/\\.%]|[!=]=|<[=<]?|>[=>]?|<>|AND|OR))",
+            "match": "(?i)(([+\\-*/\\.%]|[!=]=|<[=<]?|>[=>]?|<>|\\bAND\\b|\\bOR\\b))",
             "name": "keyword.operator.minbasic"
         },
         {

@@ -1,18 +1,67 @@
 # BASIC to Mindustry logic
 
-This is a small transpiler from a dialect of the [BASIC](https://en.wikipedia.org/wiki/BASIC) language, "MinBasic" (also known as `mbas`), to [Mindustry](https://github.com/Anuken/Mindustry/)'s [logic system](https://www.reddit.com/r/Mindustry/comments/kfea1e/an_overly_indepth_logic_guide/) (also known as `mlog`).
+*Write simple code for complex logic in [Mindustry](https://github.com/Anuken/Mindustry/)*
+
+```basic
+LET time = 0
+
+WHILE true
+    time = time + 1
+
+    reactor1.enabled = time % 3 == 0
+    reactor2.enabled = time % 3 == 1
+    reactor3.enabled = time % 3 == 2
+
+    WAIT(1)
+WEND
+```
+
+![Output of the above code block](./assets/blinking-reactors.gif)
+
+`basic-to-mindustry` is a small transpiler from a dialect of the [BASIC](https://en.wikipedia.org/wiki/BASIC) language, "MinBasic" (also known as `mbas`), to [Mindustry](https://github.com/Anuken/Mindustry/)'s [logic system](https://www.reddit.com/r/Mindustry/comments/kfea1e/an_overly_indepth_logic_guide/) (also known as `mlog`).
 Basic is chosen as the source language as it already contains jumps (which mindustry heavily relies on), while allowing for some higher-order constructs like conditions, loops and functions.
 
 ## Installation and running
 
-To use this project, start by cloning this git repository:
+You will need an installation of the Rust compiler, which you can quickly get from [rustup.rs](https://rustup.rs/).
+
+Then, simply run the following command to install the MinBasic compiler:
 
 ```sh
-git clone https://git.shadamethyst.xyz/amethyst/basic-to-mindustry/
+cargo install --git "https://github.com/adri326/basic-to-mindustry/"
+```
+
+Finally, you can run `basic-to-mindustry --help` to get a usage guide:
+
+```
+A BASIC to Mindustry Logic compiler and optimizer.
+
+Usage: basic-to-mindustry [OPTIONS] <INPUT>
+
+Arguments:
+  <INPUT>
+          The path to the input program
+
+Options:
+  -c, --copy
+          If set, copies the results to the clipboard.
+
+  -o, --opt <OPT>
+          Defines the amount of optimizations done on the generated program:
+          - A value of 0 means that no optimizations will be done (useful for debugging the compiler itself)
+          - A value of 1 means that conservative optimizations will be done (which still allows you to embed the code generated with other pieces of code)
+```
+
+### For contributing
+
+If you wish to make changes to the source code, then you will need to clone this git repository:
+
+```sh
+git clone https://github.com/adri326/basic-to-mindustry/
 cd basic-to-mindustry
 ```
 
-You will then need an installation of the Rust compiler, which you can quickly get from [rustup.rs](https://rustup.rs/).
+You will also need an installation of the Rust compiler, which you can quickly get from [rustup.rs](https://rustup.rs/).
 
 ```sh
 # To build the source code:
@@ -23,9 +72,10 @@ cargo build
 
 # You can do both of these with the following command (note the --):
 cargo run -- examples/prime.mbas
-```
 
-<!-- TODO: add options -->
+# To run the unit tests:
+cargo test
+```
 
 ## VSCode syntax highlighting
 

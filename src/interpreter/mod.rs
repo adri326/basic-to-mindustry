@@ -110,7 +110,7 @@ pub fn run(program: &MindustryProgram, stop_condition: StopCondition) -> HashMap
     let mut variables = HashMap::new();
 
     while !stop_condition.should_stop(steps) {
-        step(&compiled, &mut variables, &mut counter);
+        let _ = step(&compiled, &mut variables, &mut counter);
         steps = steps.saturating_add(1);
     }
 
