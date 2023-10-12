@@ -1,6 +1,12 @@
-use std::collections::HashMap;
+use std::fmt::Write;
+use std::{cell::RefCell, collections::HashMap};
 
-use crate::{prelude::Operator, repr::mlog::*};
+use rand::Rng;
+
+use crate::{
+    prelude::{Operator, UnaryOperator},
+    repr::mlog::*,
+};
 
 /// Represents the instruction pointer
 #[derive(Clone, Copy, PartialEq, PartialOrd, Ord, Eq, Debug)]
@@ -62,16 +68,40 @@ impl From<Value> for f64 {
     }
 }
 
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Number(x) => write!(f, "{}", x),
+            Value::String(x) => write!(f, "{}", x),
+            Value::Symbol(_) => Ok(()),
+            Value::Null => Ok(()),
+        }
+    }
+}
+
+#[non_exhaustive]
+#[derive(Clone, Debug)]
+pub struct ProgramState<R: Rng> {
+    pub variables: HashMap<String, Value>,
+    pub counter: Counter,
+
+    pub rng: RefCell<R>,
+
+    pub ended: bool,
+}
+
 #[non_exhaustive]
 pub enum StopCondition {
     Steps(usize),
+    End,
     Never,
 }
 
 impl StopCondition {
-    fn should_stop(&self, steps: usize) -> bool {
+    fn should_stop(&self, steps: usize, state: &ProgramState<impl Rng>) -> bool {
         match self {
             Self::Steps(max_steps) => steps >= *max_steps,
+            Self::End => state.ended,
             Self::Never => false,
         }
     }
@@ -105,29 +135,31 @@ fn compile<'a>(program: &'a MindustryProgram) -> CompiledProgram<'a> {
 
 pub fn run(program: &MindustryProgram, stop_condition: StopCondition) -> HashMap<String, Value> {
     let compiled = compile(program);
-    let mut counter = Counter(0);
-    let mut steps = 0;
-    let mut variables = HashMap::new();
 
-    while !stop_condition.should_stop(steps) {
-        let _ = step(&compiled, &mut variables, &mut counter);
+    let mut state = ProgramState {
+        counter: Counter(0),
+        variables: HashMap::new(),
+        rng: RefCell::new(rand::thread_rng()),
+        ended: false,
+    };
+    let mut steps = 0;
+
+    while !stop_condition.should_stop(steps, &state) {
+        let _ = step(&compiled, &mut state);
         steps = steps.saturating_add(1);
     }
 
-    variables
+    state.variables
 }
 
 pub fn step(
     program: &CompiledProgram<'_>,
-    variables: &mut HashMap<String, Value>,
-    counter: &mut Counter,
+    state: &mut ProgramState<impl Rng>,
 ) -> Result<(), String> {
-    let Some(instruction) = program.get_instruction(*counter).or_else(|| {
-        *counter = Counter(0);
-        program.get_instruction(*counter)
-    }) else {
-        // Program is empty
-        return Err(String::from("Program is empty"));
+    let Some(instruction) = program.get_instruction(state.counter) else {
+        state.counter = Counter(0);
+        state.ended = true;
+        return Ok(())
     };
 
     match instruction {
@@ -136,23 +168,82 @@ pub fn step(
         }
         MindustryOperation::Jump(label) => {
             if let Some(target) = program.labels.get(label) {
-                *counter = *target;
+                state.counter = *target;
                 return Ok(());
             } else {
-                counter.inc();
+                state.counter.inc();
                 return Err(format!("Label {} is invalid", label));
             }
         }
         MindustryOperation::JumpIf(label, operation, lhs, rhs) => {
             if let Some(target) = program.labels.get(label) {
-                if f64::from(eval_operation(*operation, lhs, rhs, variables, counter)) != 0.0f64 {
-                    *counter = *target;
+                if f64::from(eval_operation(*operation, lhs, rhs, state)) != 0.0f64 {
+                    state.counter = *target;
                     return Ok(());
                 }
             } else {
-                counter.inc();
+                state.counter.inc();
                 return Err(format!("Label {} is invalid", label));
             }
+        }
+        MindustryOperation::Operator(out_name, operation, lhs, rhs) => {
+            let result = eval_operation(*operation, lhs, rhs, state);
+            state.variables.insert(out_name.clone(), result);
+        }
+        MindustryOperation::UnaryOperator(out_name, operation, value) => {
+            let result = eval_unary_operation(*operation, value, state);
+            state.variables.insert(out_name.clone(), result);
+        }
+        MindustryOperation::Set(out_name, value) => {
+            let value = eval_operand(value, state);
+            state.variables.insert(out_name.clone(), value);
+        }
+        MindustryOperation::End => {
+            state.counter = Counter(0);
+            state.ended = true;
+        }
+        MindustryOperation::Generic(_, _) => {}
+        MindustryOperation::GenericMut(_, name, _) => {
+            return Err(format!("Mutating generic operation '{}' encountered", name));
+        }
+        MindustryOperation::Control(property, operands) => {
+            if matches!(property.as_str(), "enabled" | "control" | "config") {
+                let Some(Operand::Variable(target)) = operands.get(0) else {
+                    return Err(format!("Expected variable name as first operand to Control, got {:?}", operands.get(0)));
+                };
+
+                let value = eval_operand(
+                    operands
+                        .get(1)
+                        .ok_or_else(|| String::from("Missing second operand to Control"))?,
+                    state,
+                );
+
+                state
+                    .variables
+                    .insert(format!("{}.__{}", target, property), value);
+            } else {
+                return Err(format!("Control operation {} not supported", property));
+            }
+        }
+        MindustryOperation::Print(value) => {
+            let value = eval_operand(value, state);
+
+            if !matches!(state.variables.get("@print"), Some(Value::String(_))) {
+                state
+                    .variables
+                    .insert(String::from("@print"), Value::String(String::new()));
+            }
+            let Some(Value::String(ref mut buffer)) = state.variables.get_mut("@print") else {
+                unreachable!();
+            };
+
+            write!(buffer, "{}", value).unwrap_or_else(|_| unreachable!());
+        }
+        MindustryOperation::PrintFlush(_) => {
+            state
+                .variables
+                .insert(String::from("@print"), Value::String(String::new()));
         }
         _ => unimplemented!(),
     }
@@ -160,13 +251,13 @@ pub fn step(
     Ok(())
 }
 
-fn eval_operand(operand: &Operand, variables: &HashMap<String, Value>, counter: &Counter) -> Value {
+fn eval_operand(operand: &Operand, state: &ProgramState<impl Rng>) -> Value {
     match operand {
         Operand::Variable(name) => {
             if name == "@counter" {
-                Value::Number(counter.0 as f64)
+                Value::Number(state.counter.0 as f64)
             } else {
-                variables.get(name).cloned().unwrap_or_default()
+                state.variables.get(name).cloned().unwrap_or_default()
             }
         }
         Operand::String(string) => Value::String(string.clone()),
@@ -179,11 +270,10 @@ fn eval_operation(
     op: Operator,
     lhs: &Operand,
     rhs: &Operand,
-    variables: &mut HashMap<String, Value>,
-    counter: &mut Counter,
+    state: &ProgramState<impl Rng>,
 ) -> Value {
-    let lhs: f64 = eval_operand(lhs, variables, counter).into();
-    let rhs: f64 = eval_operand(rhs, variables, counter).into();
+    let lhs: f64 = eval_operand(lhs, state).into();
+    let rhs: f64 = eval_operand(rhs, state).into();
 
     Value::Number(match op {
         Operator::Add => lhs + rhs,
@@ -205,5 +295,22 @@ fn eval_operation(
         Operator::Pow => lhs.powf(rhs),
         Operator::And => (lhs != 0.0 && rhs != 0.0) as u64 as f64,
         Operator::Or => (lhs != 0.0 || rhs != 0.0) as u64 as f64,
+    })
+}
+
+fn eval_unary_operation(
+    op: UnaryOperator,
+    value: &Operand,
+    state: &ProgramState<impl Rng>,
+) -> Value {
+    let value: f64 = eval_operand(value, state).into();
+
+    Value::Number(match op {
+        UnaryOperator::Floor => value.floor(),
+        UnaryOperator::Round => value.round(),
+        UnaryOperator::Ceil => value.ceil(),
+        UnaryOperator::Rand => state.rng.borrow_mut().gen_range(0.0..value),
+        UnaryOperator::Sqrt => value.sqrt(),
+        UnaryOperator::Not => todo!(),
     })
 }
