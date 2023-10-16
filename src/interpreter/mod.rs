@@ -8,6 +8,9 @@ use crate::{
     repr::mlog::*,
 };
 
+#[cfg(test)]
+mod test;
+
 /// Represents the instruction pointer
 #[derive(Clone, Copy, PartialEq, PartialOrd, Ord, Eq, Debug)]
 pub struct Counter(pub usize);
@@ -88,6 +91,7 @@ pub struct ProgramState<R: Rng> {
     pub rng: RefCell<R>,
 
     pub ended: bool,
+    // TODO: add errors array
 }
 
 #[non_exhaustive]
@@ -145,6 +149,7 @@ pub fn run(program: &MindustryProgram, stop_condition: StopCondition) -> HashMap
     let mut steps = 0;
 
     while !stop_condition.should_stop(steps, &state) {
+        println!("{:?}", state);
         let _ = step(&compiled, &mut state);
         steps = steps.saturating_add(1);
     }
@@ -247,6 +252,8 @@ pub fn step(
         }
         _ => unimplemented!(),
     }
+
+    state.counter.inc();
 
     Ok(())
 }
