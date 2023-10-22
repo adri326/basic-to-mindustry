@@ -1,0 +1,13 @@
+LET x = 32
+
+start:
+    x = x / 2
+    IF x > 1 THEN
+        GOTO start
+    END IF
+
+IF x == 1 THEN
+    PRINT "success"
+ELSE
+    PRINT "fail"
+END IF

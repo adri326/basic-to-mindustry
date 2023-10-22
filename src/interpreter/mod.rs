@@ -149,7 +149,6 @@ pub fn run(program: &MindustryProgram, stop_condition: StopCondition) -> HashMap
     let mut steps = 0;
 
     while !stop_condition.should_stop(steps, &state) {
-        println!("{:?}", state);
         let _ = step(&compiled, &mut state);
         steps = steps.saturating_add(1);
     }
@@ -193,15 +192,15 @@ pub fn step(
         }
         MindustryOperation::Operator(out_name, operation, lhs, rhs) => {
             let result = eval_operation(*operation, lhs, rhs, state);
-            state.variables.insert(out_name.clone(), result);
+            store_value(out_name, result, state);
         }
         MindustryOperation::UnaryOperator(out_name, operation, value) => {
             let result = eval_unary_operation(*operation, value, state);
-            state.variables.insert(out_name.clone(), result);
+            store_value(out_name, result, state);
         }
         MindustryOperation::Set(out_name, value) => {
             let value = eval_operand(value, state);
-            state.variables.insert(out_name.clone(), value);
+            store_value(out_name, value, state);
         }
         MindustryOperation::End => {
             state.counter = Counter(0);
@@ -260,13 +259,13 @@ pub fn step(
 
 fn eval_operand(operand: &Operand, state: &ProgramState<impl Rng>) -> Value {
     match operand {
-        Operand::Variable(name) => {
-            if name == "@counter" {
-                Value::Number(state.counter.0 as f64)
-            } else {
-                state.variables.get(name).cloned().unwrap_or_default()
-            }
-        }
+        Operand::Variable(name) => match name.as_str() {
+            "@counter" => Value::Number(state.counter.0 as f64),
+            "true" => Value::Number(1.0),
+            "false" => Value::Number(0.0),
+            "null" => Value::Null,
+            other => state.variables.get(other).cloned().unwrap_or_default(),
+        },
         Operand::String(string) => Value::String(string.clone()),
         Operand::Integer(int) => Value::Number(*int as f64),
         Operand::Float(float) => Value::Number(*float),
@@ -320,4 +319,17 @@ fn eval_unary_operation(
         UnaryOperator::Sqrt => value.sqrt(),
         UnaryOperator::Not => todo!(),
     })
+}
+
+// TODO: implement as method?
+fn store_value(name: &str, value: Value, state: &mut ProgramState<impl Rng>) {
+    match name {
+        "@counter" => {
+            let value: f64 = value.into();
+            state.counter = Counter(value as usize);
+        }
+        other => {
+            state.variables.insert(other.to_string(), value);
+        }
+    }
 }

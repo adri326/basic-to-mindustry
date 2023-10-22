@@ -1,0 +1,7 @@
+LET x = 1
+
+IF x > 0 THEN
+    PRINT "success"
+ELSE
+    PRINT "fail"
+END IF

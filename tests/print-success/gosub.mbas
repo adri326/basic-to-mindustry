@@ -1,0 +1,26 @@
+LET x = 0
+
+GOSUB double
+GOSUB add_one
+GOSUB double
+GOSUB double
+GOSUB add_one
+
+IF x == 5 THEN
+    PRINT "success"
+ELSE
+    PRINT "fail"
+END IF
+
+END
+PRINT "unreachable (after END)\n"
+
+double:
+    x = x * 2
+    RETURN
+    PRINT "unreachable (after RETURN in double)\n"
+
+add_one:
+    x = x + 1
+    RETURN
+    PRINT "unreachable (after RETURN in add_one)\n"

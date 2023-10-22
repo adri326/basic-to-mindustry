@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn test_interpret_operation() {
+fn test_interprete_operation() {
     fn run_test(
         instructions: impl IntoIterator<Item = MindustryOperation>,
     ) -> HashMap<String, Value> {

@@ -1,43 +1,21 @@
 #![feature(fs_try_exists)]
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+
+#[path = "./common.rs"]
+mod common;
+use common::*;
 
 use basic_to_mindustry::optimize::{optimize_constant, optimize_jump_always, optimize_jump_op};
 use basic_to_mindustry::parse::{build_ast, tokenize};
 use basic_to_mindustry::prelude::*;
 use basic_to_mindustry::translate::translate_ast;
 
-fn read_basic_examples() -> impl Iterator<Item = (String, String)> {
-    Path::new("./examples/")
-        .read_dir()
-        .unwrap()
-        .filter_map(|entry| {
-            let Ok(entry) = entry else {
-                return None;
-            };
-
-            if entry
-                .file_name()
-                .into_string()
-                .map(|name| name.ends_with(".mbas"))
-                .unwrap_or(false)
-            {
-                let file_name = entry.file_name().into_string().unwrap();
-                let file = std::fs::read_to_string(entry.path()).unwrap_or_else(|e| {
-                    panic!("Error opening {:?}: {:?}", file_name, e);
-                });
-                Some((file_name, file))
-            } else {
-                None
-            }
-        })
-}
-
 #[test]
 fn test_examples() {
     let config = Config::default();
 
-    for (file_name, file) in read_basic_examples() {
+    for (file_name, file) in read_basic_files("./examples/") {
         let tokenized = tokenize(&file).unwrap_or_else(|e| {
             panic!("Error tokenizing {:?}: {:?}", file_name, e);
         });
@@ -56,7 +34,7 @@ fn test_examples() {
 fn test_examples_opt() {
     let config = Config::default();
 
-    for (file_name, file) in read_basic_examples() {
+    for (file_name, file) in read_basic_files("./examples/") {
         let Some(program_name) = PathBuf::from(file_name.clone())
             .file_stem()
             .and_then(|stem| stem.to_str())

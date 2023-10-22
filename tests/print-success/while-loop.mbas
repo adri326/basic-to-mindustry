@@ -1,0 +1,11 @@
+LET x = 32
+
+WHILE x > 1
+    x = x / 2
+END WHILE
+
+IF x == 1 THEN
+    PRINT "success"
+ELSE
+    PRINT "fail"
+END IF

@@ -1,0 +1,11 @@
+LET sum = 0
+
+FOR i = 2 TO 5
+    sum = sum + i
+NEXT i
+
+IF sum == 14 THEN
+    PRINT "success"
+ELSE
+    PRINT "fail"
+END IF
